@@ -1,7 +1,7 @@
 import { Vec2, checkOverlap, randomRange } from "./math.js";
 
 const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d", { willReadFrequently: true });
 canvas.width = 1200;
 canvas.height = 600;
 
@@ -164,17 +164,18 @@ class Tank {
         this.ctx.fill();
 
         // touret 
-        this.ctx.beginPath();
+        this.ctx.fillStyle = "green";
         this.ctx.fillRect(this.position.x - 30, this.position.y, 60, 20);
-        this.ctx.fill();
 
         this.ctx.beginPath();
+        this.ctx.fillStyle = "green";
         this.ctx.moveTo(this.position.x - 30, this.position.y);
         this.ctx.lineTo(this.position.x - 30, this.position.y + 20);
         this.ctx.lineTo(this.position.x - 40, this.position.y + 20);
         this.ctx.fill();
 
         this.ctx.beginPath();
+        this.ctx.fillStyle = "green";
         this.ctx.moveTo(this.position.x + 30, this.position.y);
         this.ctx.lineTo(this.position.x + 30, this.position.y + 20);
         this.ctx.lineTo(this.position.x + 40, this.position.y + 20);
@@ -189,16 +190,14 @@ class Target {
         this.position = new Vec2(x, y);
         this.height = 50;
         this.width = 10;
-        this.color = "green";
+        this.color = "red";
         this.isAlive = true;
     }
 
     draw() {
         ctx.save();
-        ctx.beginPath();
-        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
         ctx.fillStyle = this.color;
-        ctx.fill();
+        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
         ctx.restore();
     }
     update() {
@@ -276,7 +275,7 @@ class Bullet {
     }
 
     update(deltaTime) {
-        // this.checkCollision();
+        this.checkCollision();
         this.draw();
         this.updateParticles(deltaTime);
 
@@ -316,7 +315,7 @@ class Bullet {
         const { data } = ctx.getImageData(x, y, 1, 1);
         const alpha =  data[3] / 255;
 
-        if (alpha === 1 || this.position.y >= this.groundPosition.y - this.width/2 || this.position.x < -50 || this.position.x >= canvas.width + 50) {
+        if (alpha === 1 || this.position.y > canvas.height || this.position.x < -50 || this.position.x >= canvas.width + 50) {
             this.velocity.scale(0);
             this.gravity.scale(0);
             this.makeHole();
@@ -347,7 +346,7 @@ class Bullet {
 }
 
 const bullets = [];
-const tank = new Tank(100, window.innerHeight / 2 - 20, ctx);
+const tank = new Tank(100, 500, ctx);
 
 const trackMouse = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -436,7 +435,7 @@ const loadGame = () => {
         tank.update(deltaTime);
         for (let i = 0; i < bullets.length; i++) {
             const bullet = bullets[i];
-            bullet.checkCollision();
+            // bullet.checkCollision();
             bullet.update(deltaTime);
             if (!bullet.isAlive) {
                 bullets.splice(i, 1);
