@@ -12,14 +12,8 @@ groundImage.src = "./ground.png";
 groundImage.onload= (e) => {
     console.log("loaded ground");
     
-    ctx.drawImage(groundImage, 0, 0, canvas.width, canvas.height);
-    // const d = ctx.getImageData(0, 550, 1200, 600);
-    // const pixelData = d.data;
-    // console.log(`RGBA at (${0}, ${550}):`, pixelData[0], pixelData[1], pixelData[2], pixelData[3]);
-    
 }
 
-const groundPosition = new Vec2(0, canvas.height - 100);
 const holes = [];
 
 class Hole {
@@ -35,7 +29,6 @@ class Hole {
 
         this.ctx.globalCompositeOperation = "destination-out";
         this.ctx.fillStyle = "rgba(0, 0, 0, 255)";
-        // this.ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
         this.ctx.arc(this.position.x, this.position.y, 20, 0, Math.PI * 2, false);
         this.ctx.fill();
         this.ctx.globalCompositeOperation = "source-over";
@@ -45,49 +38,23 @@ class Hole {
         this.draw();
     }
 }
-class Ground {
-    constructor(ctx) {
-        this.ctx = ctx;
-        this.position = new Vec2(0, canvas.height - 100);
-        this.color = "pink";
-        this.width = canvas.width;
-        this.height = 100;
-    }
 
-    draw() {
-        this.ctx.fillStyle = this.color;
-        this.ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
-        this.ctx.fill();
-
-        this.ctx.globalCompositeOperation = "destination-out";
-        this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
-        this.ctx.fillRect(this.position.x, this.position.y, 50, 50);
-
-        this.ctx.globalCompositeOperation = "source-over";
-
-    }
-    update() {
-        this.draw();
-    }
-}
 class Power {
     constructor(x, y, ctx) {
         this.position = new Vec2(x, y);
         this.width = 200;
         this.height = 20;
         this.power = 0;
-        this.color = "red";
+        this.color = "#0480e8";
         this.ctx = ctx;
     }
 
     draw() {
         this.ctx.fillStyle = this.color;
         this.ctx.fillRect(this.position.x, this.position.y, this.power, this.height);
-        this.ctx.fill();
 
-        this.ctx.rect(this.position.x, this.position.y, this.width, this.height);
         this.ctx.strokeStyle = "#000000";
-        this.ctx.stroke();
+        this.ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
     }
     update() {
         this.draw();
@@ -151,9 +118,8 @@ class Tank {
         this.ctx.rotate(adjustedAngleRadians);
 
         this.ctx.beginPath();
-        this.ctx.rect(-this.width / 2, -this.height, this.width, this.height);
-        this.ctx.fillStyle = 'blue';
-        this.ctx.fill();
+        this.ctx.fillStyle = "blue";
+        this.ctx.fillRect(-this.width / 2, -this.height, this.width, this.height);
         this.ctx.restore();
         this.ctx.closePath();
 
@@ -171,16 +137,18 @@ class Tank {
         this.ctx.fillStyle = "green";
         this.ctx.moveTo(this.position.x - 30, this.position.y);
         this.ctx.lineTo(this.position.x - 30, this.position.y + 20);
-        this.ctx.lineTo(this.position.x - 40, this.position.y + 20);
+        this.ctx.lineTo(this.position.x - 40, this.position.y + 20); 
+        this.ctx.closePath();
         this.ctx.fill();
+
 
         this.ctx.beginPath();
         this.ctx.fillStyle = "green";
         this.ctx.moveTo(this.position.x + 30, this.position.y);
         this.ctx.lineTo(this.position.x + 30, this.position.y + 20);
         this.ctx.lineTo(this.position.x + 40, this.position.y + 20);
-        this.ctx.fill();
         this.ctx.closePath();
+        this.ctx.fill();
         
     }
 }
@@ -195,10 +163,10 @@ class Target {
     }
 
     draw() {
-        ctx.save();
+        // ctx.save();
         ctx.fillStyle = this.color;
         ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
-        ctx.restore();
+        // ctx.restore();
     }
     update() {
 
@@ -244,10 +212,10 @@ class Particle {
   }
 }
 
-const targets = [new Target(500, 20), new Target(800, 200)];
+const targets = [new Target(500, 20), new Target(600, 300), new Target(250, 525)];
 
 class Bullet {
-    constructor(x, y, velocity, speed = 1, groundPosition, ctx) {
+    constructor(x, y, velocity, speed = 1, ctx) {
         this.position = new Vec2(x, y);
         this.gravity = new Vec2(0, 8);
         this.speed = speed || 0.5;
@@ -259,16 +227,14 @@ class Bullet {
         this.exploded = false;
         this.isAlive = true;
         this.particles = [];
-        this.groundPosition = new Vec2(groundPosition.x, groundPosition.y)
     }
 
     draw() {
        if (!this.exploded) {
             ctx.save();
-            ctx.globalAlpha = this.alpha;
             ctx.beginPath();
-            ctx.arc(this.position.x + this.width/2, this.position.y, this.width/2, 0, Math.PI * 2, false);
             ctx.fillStyle = this.color;
+            ctx.arc(this.position.x + this.width/2, this.position.y, this.width/2, 0, Math.PI * 2, false);
             ctx.fill();
             ctx.restore();
        } 
@@ -326,7 +292,7 @@ class Bullet {
         for (const target of targets) {
             if (checkOverlap(this, target)) {
                 target.isAlive = false;
-                targets.push(new Target(randomRange(canvas.width/2, canvas.width - target.width), randomRange(target.height, this.groundPosition.y - target.height)));
+                targets.push(new Target(randomRange(canvas.width/2, canvas.width - target.width), randomRange(target.height, canvas.height - target.height)));
                 this.velocity.scale(0);
                 this.gravity.scale(0);
                 this.explode();
@@ -346,7 +312,7 @@ class Bullet {
 }
 
 const bullets = [];
-const tank = new Tank(100, 500, ctx);
+const tank = new Tank(80, 500, ctx);
 
 const trackMouse = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -364,8 +330,6 @@ const setShootPower = (e) => {
         startT = new Date().getTime();
     }
 }
-
-
 
 const shoot = (e) => {
     let endT = (new Date().getTime() - startT);
@@ -395,20 +359,18 @@ const shoot = (e) => {
 
     if (canShoot) {
         canShoot = false;
-        bullets.push(new Bullet(bulletOffsetX, bulletOffsetY, new Vec2(bulletDirectionX, bulletDirectionY), endT, groundPosition, ctx));
+        bullets.push(new Bullet(bulletOffsetX, bulletOffsetY, new Vec2(bulletDirectionX, bulletDirectionY), endT, ctx));
         setTimeout(() => {
             canShoot = true;
         }, 1500)
     }
 }
-const ground = new Ground(ctx);
 
 let deltaTime;
 let oldTimeStamp;
 let fps;
 
 const loadGame = () => {
-
 
     canvas.addEventListener("mousemove", trackMouse);
     canvas.addEventListener("mousedown", setShootPower);

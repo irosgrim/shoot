@@ -41,8 +41,6 @@ export class Vec2 {
     }
 }
 
-
-
 export const checkOverlap = (b1, b2) => {
     if (b1.position.x + b1.width < b2.position.x ||    
         b1.position.x > b2.position.x + b2.width ||    
