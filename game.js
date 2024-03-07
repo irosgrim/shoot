@@ -1,61 +1,107 @@
-// import { canvas, ctx } from "./canvas.js";
-// import { Vec2, checkCollision } from "./math.js";
+import { Vec2, checkOverlap, randomRange } from "./math.js";
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight / 2;
+canvas.width = 1200;
+canvas.height = 600;
 
-const randomRange = (min, max) => {
-  return min + Math.random() * (max - min);
+
+const groundImage = new Image()
+groundImage.src = "./ground.png";
+
+groundImage.onload= (e) => {
+    console.log("loaded ground");
+    
+    ctx.drawImage(groundImage, 0, 0, canvas.width, canvas.height);
+    // const d = ctx.getImageData(0, 550, 1200, 600);
+    // const pixelData = d.data;
+    // console.log(`RGBA at (${0}, ${550}):`, pixelData[0], pixelData[1], pixelData[2], pixelData[3]);
+    
 }
 
-class Vec2 {
-    constructor(x, y) {
-        this.x = x || 0;
-        this.y = y || 0;
+const groundPosition = new Vec2(0, canvas.height - 100);
+const holes = [];
+
+class Hole {
+    constructor(x, y, width, height, shape, ctx) {
+        this.position = new Vec2(x, y);
+        this.width = width;
+        this.height = height;
+        this.shape = shape || "circle";
+        this.ctx = ctx;
     }
-    add(v) {
-        this.x += v.x;
-        this.y += v.y;
-        return this;
+    draw() {
+        this.ctx.beginPath();
+
+        this.ctx.globalCompositeOperation = "destination-out";
+        this.ctx.fillStyle = "rgba(0, 0, 0, 255)";
+        // this.ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
+        this.ctx.arc(this.position.x, this.position.y, 20, 0, Math.PI * 2, false);
+        this.ctx.fill();
+        this.ctx.globalCompositeOperation = "source-over";
+        this.ctx.closePath();
     }
-    subtract(v) {
-        this.x -= v.x;
-        this.y -= v.y;
-        return this;
+    update() {
+        this.draw();
     }
-    multiply(v) {
-        this.x *= v.x;
-        this.y *= v.y;
-        return this;
+}
+class Ground {
+    constructor(ctx) {
+        this.ctx = ctx;
+        this.position = new Vec2(0, canvas.height - 100);
+        this.color = "pink";
+        this.width = canvas.width;
+        this.height = 100;
     }
-    scale(times) {
-        this.x *= times;
-        this.y *= times;
-        return this;
+
+    draw() {
+        this.ctx.fillStyle = this.color;
+        this.ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
+        this.ctx.fill();
+
+        this.ctx.globalCompositeOperation = "destination-out";
+        this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
+        this.ctx.fillRect(this.position.x, this.position.y, 50, 50);
+
+        this.ctx.globalCompositeOperation = "source-over";
+
     }
-    dist(v) {
-        const dx = v.x - this.x;
-        const dy = v.y - this.y;
-        return Math.sqrt((dx*dx) + (dy*dy)).toFixed(3);
+    update() {
+        this.draw();
     }
-    length() {
-        return Math.sqrt((this.x * this.x) + (this.y * this.y)).toFixed(3);
+}
+class Power {
+    constructor(x, y, ctx) {
+        this.position = new Vec2(x, y);
+        this.width = 200;
+        this.height = 20;
+        this.power = 0;
+        this.color = "red";
+        this.ctx = ctx;
     }
-    isEqual(v) {
-        return (this.x === v.x) && (this.y === v.y);
+
+    draw() {
+        this.ctx.fillStyle = this.color;
+        this.ctx.fillRect(this.position.x, this.position.y, this.power, this.height);
+        this.ctx.fill();
+
+        this.ctx.rect(this.position.x, this.position.y, this.width, this.height);
+        this.ctx.strokeStyle = "#000000";
+        this.ctx.stroke();
+    }
+    update() {
+        this.draw();
+    }
+
+    setPower(current, total = 2000) {
+        const currentPercentage = (current * 100) / total;
+        const bit = this.width / 100;
+        this.power = currentPercentage * bit;
+
     }
 }
 
-const checkOverlap = (b1, b2) => {
-    if (b1.position.x + b1.width < b2.position.x ||    
-        b1.position.x > b2.position.x + b2.width ||    
-        b1.position.y + b1.height < b2.position.y ||   
-        b1.position.y > b2.position.y + b2.height) {    
-        return false;
-    }
-    return true;
-}
+const power = new Power(10, 10, ctx);
 
 class Tank {
     constructor(x, y, ctx, eventManager) {
@@ -65,6 +111,7 @@ class Tank {
         this.mousePosition = new Vec2(0,0);
         this.height = 40;
         this.width = 10;
+        this.angleDegrees = 0;
     }
 
     update () {
@@ -80,11 +127,28 @@ class Tank {
         // cannon
         // calculate the angle to rotate
         const angleRadians = Math.atan2(this.mousePosition.y - rectBottomCenterY, this.mousePosition.x - rectBottomCenterX) + Math.PI;
+        this.angleDegrees = Math.round(angleRadians * 180/Math.PI);
         this.ctx.save();
         // translate and rotate the canvas
         this.ctx.translate(rectBottomCenterX, rectBottomCenterY);
         this.ctx.rotate(-Math.PI / 2);
-        this.ctx.rotate(angleRadians)
+
+        let adjustedAngleDegrees;
+        if (this.angleDegrees > 270) {
+            adjustedAngleDegrees = 0;
+        } else if (this.angleDegrees > 180) {
+            adjustedAngleDegrees = 180;
+        } else {
+            adjustedAngleDegrees = Math.max(0, this.angleDegrees);
+        }
+
+        document.getElementById("debug").innerHTML = `
+        <p>Angle: ${adjustedAngleDegrees}</p>
+        `;
+
+        const adjustedAngleRadians = adjustedAngleDegrees * (Math.PI / 180);
+
+        this.ctx.rotate(adjustedAngleRadians);
 
         this.ctx.beginPath();
         this.ctx.rect(-this.width / 2, -this.height, this.width, this.height);
@@ -95,14 +159,13 @@ class Tank {
 
         // touret 
         this.ctx.beginPath();
-        this.ctx.arc(this.position.x, this.position.y, 20, 90, 2*Math.PI);
         this.ctx.fillStyle = "green";
+        this.ctx.arc(this.position.x, this.position.y, 20, 0, 2*Math.PI);
         this.ctx.fill();
 
         // touret 
         this.ctx.beginPath();
         this.ctx.fillRect(this.position.x - 30, this.position.y, 60, 20);
-        this.ctx.fillStyle = "blue";
         this.ctx.fill();
 
         this.ctx.beginPath();
@@ -164,13 +227,15 @@ class Particle {
     ctx.restore();
   }
 
-  update() {
+  update(deltaTime) {
    if (this.isAlive()) {
         this.velocity.x *= 0.99; // air resistance
         this.velocity.y += this.gravity;
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
         this.alpha -= 0.005;
+        this.alpha = Math.max(0, this.alpha);
+        
         this.draw();
    }
   }
@@ -183,9 +248,9 @@ class Particle {
 const targets = [new Target(500, 20), new Target(800, 200)];
 
 class Bullet {
-    constructor(x, y, velocity, speed = 1, ctx) {
+    constructor(x, y, velocity, speed = 1, groundPosition, ctx) {
         this.position = new Vec2(x, y);
-        this.gravity = new Vec2(0, 0.1);
+        this.gravity = new Vec2(0, 8);
         this.speed = speed || 0.5;
         this.velocity = velocity.scale(this.speed);
         this.ctx = ctx;
@@ -195,6 +260,7 @@ class Bullet {
         this.exploded = false;
         this.isAlive = true;
         this.particles = [];
+        this.groundPosition = new Vec2(groundPosition.x, groundPosition.y)
     }
 
     draw() {
@@ -209,18 +275,20 @@ class Bullet {
        } 
     }
 
-    update (deltaTime) {
-        console.log(`deltaTime: ${deltaTime}`);
+    update(deltaTime) {
+        // this.checkCollision();
         this.draw();
-        this.updateParticles();
+        this.updateParticles(deltaTime);
+
+        let tempVelocity = new Vec2(this.velocity.x, this.velocity.y).scale(deltaTime);
+        this.position.add(tempVelocity);
         this.velocity.add(this.gravity);
-        this.position.add(this.velocity);
-        this.checkCollision();
     }
+
 
     explode() {
         if(!this.exploded) {
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < 60; i++) {
                this.particles.push(new Particle(this.position.x, this.position.y, Math.random() * 3, 'red', {
                     x: (Math.random() - 0.5) * (Math.random() * 6),
                     y: (Math.random() - 1) * Math.random() * 5,
@@ -230,41 +298,56 @@ class Bullet {
         this.exploded = true;
     }
 
-    updateParticles() {
+    updateParticles(deltaTime) {
         this.particles = this.particles.filter(particle => particle.isAlive());
         if (this.exploded && !this.particles.length) {
             this.isAlive = false;
         } else {
             this.particles.forEach(particle => {
-                particle.update();
+                particle.update(deltaTime);
             });
         }
     }
 
     checkCollision() {
         // ground collision
-        if (this.position.y >= canvas.height - this.width/2) {
+        const x = Math.floor(this.position.x - this.width/2);
+        const y = Math.floor(this.position.y + this.height);
+        const { data } = ctx.getImageData(x, y, 1, 1);
+        const alpha =  data[3] / 255;
+
+        if (alpha === 1 || this.position.y >= this.groundPosition.y - this.width/2 || this.position.x < -50 || this.position.x >= canvas.width + 50) {
             this.velocity.scale(0);
             this.gravity.scale(0);
+            this.makeHole();
             this.explode();
+
         }
 
         for (const target of targets) {
             if (checkOverlap(this, target)) {
                 target.isAlive = false;
-                targets.push(new Target(Math.random() * canvas.width - target.width, Math.random() * canvas.height - target.height));
+                targets.push(new Target(randomRange(canvas.width/2, canvas.width - target.width), randomRange(target.height, this.groundPosition.y - target.height)));
                 this.velocity.scale(0);
                 this.gravity.scale(0);
                 this.explode();
             }
         }
     }
+
+     makeHole() {
+        const { data } = ctx.getImageData(this.position.x - this.width/2, this.position.y + this.height, 1, 1);
+        const alpha =  data[3] / 255;
+        
+        if (alpha > 0) {
+            holes.push(new Hole(this.position.x, this.position.y, this.width, this.height, "circle", this.ctx));
+        }
+
+    }
 }
 
 const bullets = [];
 const tank = new Tank(100, window.innerHeight / 2 - 20, ctx);
-
-
 
 const trackMouse = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -273,25 +356,31 @@ const trackMouse = (e) => {
     tank.mousePosition = new Vec2(mouseX, mouseY);
 }
 
+
 let canShoot = true;
 let startT = 0;
-const setShootPower = () => {
-    startT = new Date().getTime();
+
+const setShootPower = (e) => {
+    if (e.button === 0) {
+        startT = new Date().getTime();
+    }
 }
 
-const shoot = (e) => {
-    let endT = (new Date().getTime() - startT) / 100;
-    
-    if (endT >= 15) {
 
-        endT = 15;
+
+const shoot = (e) => {
+    let endT = (new Date().getTime() - startT);
+    startT = 0;
+    if (endT >= 2000) {
+        
+        endT = 2000;
     }
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     const tankCenterX = tank.position.x;
     const tankCenterY = tank.position.y;
-    const tankHeight = tank.height;
+    const tankHeight = tank.height + 20;
     const bulletSize = 10;
 
     // calculate distance from mouse click to player center
@@ -307,27 +396,47 @@ const shoot = (e) => {
 
     if (canShoot) {
         canShoot = false;
-        bullets.push(new Bullet(bulletOffsetX, bulletOffsetY, new Vec2(bulletDirectionX, bulletDirectionY), endT, ctx));
+        bullets.push(new Bullet(bulletOffsetX, bulletOffsetY, new Vec2(bulletDirectionX, bulletDirectionY), endT, groundPosition, ctx));
         setTimeout(() => {
             canShoot = true;
         }, 1500)
     }
 }
+const ground = new Ground(ctx);
 
-canvas.addEventListener("mousemove", trackMouse);
-canvas.addEventListener("mousedown", setShootPower);
-canvas.addEventListener("mouseup", shoot)
+let deltaTime;
+let oldTimeStamp;
+let fps;
 
-let lastTime = 0;
 const loadGame = () => {
+
+
+    canvas.addEventListener("mousemove", trackMouse);
+    canvas.addEventListener("mousedown", setShootPower);
+    canvas.addEventListener("mouseup", shoot);
+
     const draw = (timeStamp) => {
-        const now = window.performance.now();
-        const deltaTime = (now - lastTime) / 1000; // convert milliseconds to seconds
-        lastTime = now;
+        deltaTime = (timeStamp - oldTimeStamp) / 1000;
+        oldTimeStamp = timeStamp;
+
+        fps = Math.round(1 / deltaTime);
+        if (startT) {
+            const t = (new Date().getTime() - startT);
+            if (t <= 2000) {
+                power.setPower((new Date().getTime() - startT));
+            }
+        }
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        tank.update();
+        ctx.drawImage(groundImage, 0, 0);
+        // ground.update();
+        for (const hole of holes) {
+            hole.update();
+        }
+        tank.update(deltaTime);
         for (let i = 0; i < bullets.length; i++) {
             const bullet = bullets[i];
+            bullet.checkCollision();
             bullet.update(deltaTime);
             if (!bullet.isAlive) {
                 bullets.splice(i, 1);
@@ -342,6 +451,7 @@ const loadGame = () => {
                 targets.splice(i, 1);
             }
         }
+        power.update();
         window.requestAnimationFrame(draw);
     };
 
