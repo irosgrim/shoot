@@ -5,16 +5,23 @@ const ctx = canvas.getContext("2d", { willReadFrequently: true });
 canvas.width = 1200;
 canvas.height = 600;
 
+const terrainCanvas = document.createElement("canvas");
+const terrainCtx = terrainCanvas.getContext("2d", {willReadFrequently: true});
+terrainCanvas.width = canvas.width;
+terrainCanvas.height = canvas.height;
+
+const scale = window.devicePixelRatio;
+
 
 const groundImage = new Image()
 groundImage.src = "./ground.png";
 
 groundImage.onload= (e) => {
     console.log("loaded ground");
-    
+    terrainCtx.drawImage(groundImage, 0, 0);
 }
 
-const holes = [];
+let holes = [];
 
 class Hole {
     constructor(x, y, width, height, shape, ctx) {
@@ -25,14 +32,14 @@ class Hole {
         this.ctx = ctx;
     }
     draw() {
-        this.ctx.beginPath();
-
-        this.ctx.globalCompositeOperation = "destination-out";
-        this.ctx.fillStyle = "rgba(0, 0, 0, 255)";
-        this.ctx.arc(this.position.x, this.position.y, 20, 0, Math.PI * 2, false);
-        this.ctx.fill();
-        this.ctx.globalCompositeOperation = "source-over";
-        this.ctx.closePath();
+        // paint and merge the hole with the terrain context
+        terrainCtx.beginPath();
+        terrainCtx.globalCompositeOperation = "destination-out";
+        terrainCtx.fillStyle = "rgba(0, 0, 0, 255)";
+        terrainCtx.arc(this.position.x, this.position.y, 20, 0, Math.PI * 2, false);
+        terrainCtx.fill();
+        terrainCtx.globalCompositeOperation = "source-over";
+        terrainCtx.closePath();
     }
     update() {
         this.draw();
@@ -222,19 +229,27 @@ class Bullet {
         this.velocity = velocity.scale(this.speed);
         this.ctx = ctx;
         this.width = 10;
-        this.height = 10;
+        this.height = 20;
         this.color = "red";
         this.exploded = false;
         this.isAlive = true;
         this.particles = [];
     }
 
+    get rotationRadians() {
+        return Math.atan2(this.velocity.y, this.velocity.x);
+    }
+
     draw() {
        if (!this.exploded) {
             ctx.save();
-            ctx.beginPath();
+            ctx.translate(this.position.x + this.width / 2, this.position.y);
+            ctx.rotate(this.rotationRadians + Math.PI / 2);
+            
             ctx.fillStyle = this.color;
-            ctx.arc(this.position.x + this.width/2, this.position.y, this.width/2, 0, Math.PI * 2, false);
+            ctx.beginPath();
+            // ctx.arc(this.position.x + this.width/2, this.position.y, this.width/2, 0, Math.PI * 2, false);
+            ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
             ctx.fill();
             ctx.restore();
        } 
@@ -275,19 +290,32 @@ class Bullet {
     }
 
     checkCollision() {
-        // ground collision
-        const x = Math.floor(this.position.x - this.width/2);
-        const y = Math.floor(this.position.y + this.height);
-        const { data } = ctx.getImageData(x, y, 1, 1);
-        const alpha =  data[3] / 255;
+        // terrain collision check
+        const checkWidth = 10; 
+        const checkHeight = 1;
 
-        if (alpha === 1 || this.position.y > canvas.height || this.position.x < -50 || this.position.x >= canvas.width + 50) {
+        const tipX = Math.floor(this.position.x + this.width / 2);
+        const tipY = Math.floor(this.position.y);
+
+        // get pixels at the tip of bullet
+        const { data } = terrainCtx.getImageData(tipX, tipY, checkWidth, checkHeight);
+
+        let collisionDetected = false;
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3] / 255;
+            if (alpha === 1) {
+                collisionDetected = true;
+                break;
+            }
+        }
+
+        if (collisionDetected || this.position.y > canvas.height || this.position.x < -50 || this.position.x >= canvas.width + 50) {
             this.velocity.scale(0);
             this.gravity.scale(0);
             this.makeHole();
             this.explode();
-
         }
+
 
         for (const target of targets) {
             if (checkOverlap(this, target)) {
@@ -301,13 +329,7 @@ class Bullet {
     }
 
      makeHole() {
-        const { data } = ctx.getImageData(this.position.x - this.width/2, this.position.y + this.height, 1, 1);
-        const alpha =  data[3] / 255;
-        
-        if (alpha > 0) {
-            holes.push(new Hole(this.position.x, this.position.y, this.width, this.height, "circle", this.ctx));
-        }
-
+        holes.push(new Hole(this.position.x, this.position.y, this.width, this.height, "circle", this.ctx));
     }
 }
 
@@ -389,11 +411,14 @@ const loadGame = () => {
         }
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(groundImage, 0, 0);
-        // ground.update();
+
+        // terrain layer copied from other canvas for alpha detection
+        ctx.drawImage(terrainCanvas, 0, 0);
         for (const hole of holes) {
             hole.update();
         }
+        // delete the "holes" after being painted to canvas
+        holes = [];
         tank.update(deltaTime);
         for (let i = 0; i < bullets.length; i++) {
             const bullet = bullets[i];
