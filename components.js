@@ -76,6 +76,13 @@ export class Color extends Component {
     }
 }
 
+export class Alpha extends Component {
+    constructor(alphaValue) {
+        super("Alpha");
+        this.alpha = alphaValue;
+    }
+}
+
 export class RenderContext extends Component {
     constructor(contextKey) {
         super("RenderContext");
@@ -92,12 +99,21 @@ export class EventListener extends Component{
 
 
 export class RenderComponent extends Component {
-  constructor(shape, position, color, size) {
+  constructor(shape, position, color, size, imagePath = null) {
     super("RenderComponent");
     this.position = new Vec2(position.x, position.y);
     this.color = color;
     this.shape = shape; 
-    this.size = size;
+    this.size = {
+        w: size.w ?? null,
+        h: size.h ?? null,
+        r: size.r ?? null, 
+    };
+    this.image = null;
+    if (imagePath) {
+        this.image = new Image(this.size.w, this.size.h);
+        this.image.src = imagePath;
+    }
   }
 }
 
@@ -115,10 +131,10 @@ export class LifeComponent extends Component {
     }
 }
 
-export class IsRemoved extends Component {
+export class Active extends Component {
     constructor(removed) {
-        super("IsRemoved");
-        this.isRemoved = removed;
+        super("Active");
+        this.isActive = removed;
     }
 }
 

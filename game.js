@@ -1,23 +1,63 @@
 import { EventManager } from "./eventManager.js";
 import { Vec2, checkOverlap, randomRange } from "./math.js";
-import { RenderContext, RenderComponent, Position, Color, Velocity, Rotation, Gravity, Shape, Tag, EventListener, DamageOnCollisionComponent, IsRemoved, LifeComponent } from "./components.js";
+import { 
+    RenderContext, 
+    RenderComponent, 
+    Position, 
+    Color, 
+    Velocity, 
+    Rotation, 
+    Gravity, 
+    Shape, 
+    Tag, 
+    EventListener, 
+    DamageOnCollisionComponent, 
+    Active, 
+    LifeComponent, 
+    Alpha 
+} from "./components.js";
 
-// class MovementSystem {
-//     constructor (entities) {
-//         this.entities = entities;
-//     }
+class MovementSystem {
+    constructor (entityManager, eventManagerSystem) {
+        this.entityManager = entityManager;
+        this.eventManagerSystem = eventManagerSystem;
+    }
 
-//     update (deltaTime) {
-//         this.entities.forEach(entity => {
-//             const position = entity.getComponent("position");
-//             const velocity = entity.getComponent("velocity");
+    update (deltaTime) {
+        this.entityManager.entities.forEach(entityId => {
+            const renderComponent = this.entityManager.getComponent(entityId, "RenderComponent");
+            const velocityComponent = this.entityManager.getComponent(entityId, "Velocity");
+            const active = this.entityManager.getComponent(entityId, "Active");
+            const tag = this.entityManager.getComponent(entityId, "Tag");
+            const gravity = this.entityManager.getComponent(entityId, "Gravity");
 
-//             if (position && velocity) {
-//                 position.vec2.add(velocity.vec2).scale(deltaTime);
-//             }
-//         })
-//     }
-// }
+            if (renderComponent && velocityComponent && (active && active.isActive === true)) {
+                if (tag && tag.tag === "bullet") {
+                    const tempVelocity = velocityComponent.vec2.scaleNew(deltaTime);
+                    renderComponent.position.add(tempVelocity);
+                    velocityComponent.vec2.add(gravity.vec2);
+                    velocityComponent.vec2.x *= 0.999;
+                }
+                if (tag && tag.tag === "particle") {
+                    const alphaComponent = this.entityManager.getComponent(entityId, "Alpha");
+                    velocityComponent.vec2.x *= 0.99; // air resistance
+                    velocityComponent.vec2.y += gravity.vec2.y;
+                    renderComponent.position.x += velocityComponent.vec2.x;
+                    renderComponent.position.y += velocityComponent.vec2.y;
+
+                    // set alpha decay
+                    alphaComponent.alpha -= 0.005;
+                    alphaComponent.alpha = Math.max(0, alphaComponent.alpha);
+
+                    if (alphaComponent.alpha === 0) {
+                        active.isActive = false;
+                        velocityComponent.vec2.scale(0);
+                    }
+                }
+            }
+        })
+    }
+}
 
 class RenderSystem {
     constructor(entityManager, contexts, eventManagerSystem) {
@@ -33,26 +73,22 @@ class RenderSystem {
             this.entityManager.entities.forEach(entityId => {
                 const renderContext = this.entityManager.getComponent(entityId, "RenderContext");
                 const tag = this.entityManager.getComponent(entityId, "Tag");
-                const entityIsRemoved = this.entityManager.getComponent(entityId, "IsRemoved");
+                const active = this.entityManager.getComponent(entityId, "Active");
 
                 const renderComponent = this.entityManager.getComponent(entityId, "RenderComponent");
 
-                if (entityIsRemoved === undefined || entityIsRemoved.isRemoved === false) {
+                if (active !== undefined && active.isActive === true) {
                     if (renderContext && renderContext.contextKey === ctxKey && renderComponent) {
                         const rotation = this.entityManager.getComponent(entityId, "Rotation");
+                        const velocity = this.entityManager.getComponent(entityId, "Velocity");
+                        const alpha = this.entityManager.getComponent(entityId, "Alpha");
+
+
                         if(tag.tag === "bullet") {
-                            const velocity = this.entityManager.getComponent(entityId, "Velocity");
-                            const gravity = this.entityManager.getComponent(entityId, "Gravity");
-    
-                            const tempVelocity = velocity.vec2.scaleNew(deltaTime);
-                            renderComponent.position.add(tempVelocity);
-                            velocity.vec2.add(gravity.vec2);
-                            velocity.vec2.x *= 0.99; // air resistance
-                            
-                            this.drawBullet(ctx, renderComponent, velocity, gravity, rotation, deltaTime);
+                            this.drawBullet(entityId, ctx, renderComponent, velocity);
                             
                         } else {
-                            this.drawEntity(ctx, {renderComponent, rotation, tag});
+                            this.drawEntity(ctx, {renderComponent, rotation, tag, alpha, velocity});
                         }
                     }
                 }
@@ -60,14 +96,11 @@ class RenderSystem {
         })
     }
 
-    drawBullet(ctx, renderComponent, velocity, gravity, rotation, deltaTime) {
-        const tempVelocity = velocity.vec2.scaleNew(deltaTime);
-        renderComponent.position.add(tempVelocity);
-        velocity.vec2.add(gravity.vec2);
+    drawBullet(entityId, ctx, renderComponent, velocity) {
         const newRotationRadians = Math.atan2(velocity.vec2.y, velocity.vec2.x);
         ctx.save();
         ctx.translate(renderComponent.position.x + renderComponent.size.w / 2, renderComponent.position.y);
-        ctx.rotate(newRotationRadians+ Math.PI / 2);
+        ctx.rotate(newRotationRadians + Math.PI / 2);
         
         ctx.fillStyle = renderComponent.color;
         ctx.beginPath();
@@ -111,26 +144,43 @@ class RenderSystem {
     }
 
     drawDefaultShape(ctx, components) {
-        const { color, shape, position, size } = components.renderComponent;
-        ctx.fillStyle = color;
-        switch(shape) {
+        const renderComponent = components.renderComponent;
+        
+        ctx.fillStyle = renderComponent.color;
+        switch(renderComponent.shape) {
             case "circle":
+                if (components.alpha) {
+                    ctx.globalAlpha = components.alpha.alpha;
+                }
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
                 ctx.beginPath();
-                ctx.arc(0, 0, size.size.r, 0, 2 * Math.PI);
+                ctx.arc(renderComponent.position.x, renderComponent.position.y, renderComponent.size.r, 0, 2 * Math.PI, false);
+                ctx.fillStyle = renderComponent.color;
                 ctx.fill();
+                ctx.restore();
                 break;
             case "rectangle":
-                ctx.fillRect(position.x, position.y, size.w, size.h);
+                ctx.fillRect(renderComponent.position.x, renderComponent.position.y, renderComponent.size.w, renderComponent.size.h);
                 break;
-        }
+            case "image":
+                ctx.drawImage(renderComponent.image, renderComponent.position.x, renderComponent.position.y, renderComponent.size.w, renderComponent.size.h);
+                break;
+            }
+        ctx.globalAlpha = 1;
     }
 
     drawEntity(ctx, components) {
-        const { tag } = components;
+        const { tag, alphaComponent } = components;
+        let alpha = 1;
+        if (alphaComponent) {
+            alpha = alphaComponent.alpha;
+        }
         switch(tag && tag.tag) {
             case "cannon":
                 this.drawCannon(ctx, components);
                 break;
+          
             default:
                 this.drawDefaultShape(ctx, components);
                 break;
@@ -605,12 +655,21 @@ class EntityManager {
         return this.componentsByName.get(componentClass) || new Map();
     }
 
+    createTerrain(position, w, h) {
+        const terrainEntityId = this.createEntity();
+        this.addComponent(terrainEntityId, new RenderComponent("image", position, "", {w, h}, "./ground.png"));
+        this.addComponent(terrainEntityId, new RenderContext("gameCtx"));
+        this.addComponent(terrainEntityId, new Tag("terrain"));
+        this.addComponent(terrainEntityId, new Active(true));
+    }
+
 
     createPlayer(position) {
         const tankBaseEntityId = this.createEntity();
         this.addComponent(tankBaseEntityId, new RenderComponent("rectangle", position, "blue", {w: 100, h: 50}));
         this.addComponent(tankBaseEntityId, new RenderContext("gameCtx"));
         this.addComponent(tankBaseEntityId, new Tag("tankbase"))
+        this.addComponent(tankBaseEntityId, new Active(true));
 
     
         const turretEntityId = this.createEntity();
@@ -619,27 +678,43 @@ class EntityManager {
         this.addComponent(turretEntityId, new EventListener("mouse-rotation"));
         this.addComponent(turretEntityId, new RenderContext("gameCtx"));
         this.addComponent(turretEntityId, new Tag("cannon"))
+        this.addComponent(turretEntityId, new Active(true));
+
     }
 
-    createBullet(x, y, velocity, speed = 1, radians, removed = false) {
+    createBullet(x, y, velocity, speed = 1, radians, active = false) {
         const bulletEntityId = this.createEntity();
-        this.addComponent(bulletEntityId, new RenderComponent("rectangle", {x, y}, "pink", {w: 10, h:20}));
+
+        this.addComponent(bulletEntityId, new RenderComponent("rectangle", {x, y}, "green", {w: 10, h:20}));
         this.addComponent(bulletEntityId, new Rotation(radians));
         this.addComponent(bulletEntityId, new Velocity(velocity.x * speed, velocity.y * speed));
-        this.addComponent(bulletEntityId, new Gravity(0, 2));
+        this.addComponent(bulletEntityId, new Gravity(0, 8));
         this.addComponent(bulletEntityId, new RenderContext("gameCtx"));
         this.addComponent(bulletEntityId, new Tag("bullet"))
-        this.addComponent(bulletEntityId, new IsRemoved(removed));
+        this.addComponent(bulletEntityId, new Active(active));
     }
 
-    createTarget(x, y, removed = false) {
+    createTarget(x, y, active = false) {
         const targetEntity = this.createEntity();
         this.addComponent(targetEntity, new RenderComponent("rectangle", {x, y}, "red", {w: 10, h:100}));
         this.addComponent(targetEntity, new RenderContext("gameCtx"));
         this.addComponent(targetEntity, new Tag("target"))
         this.addComponent(targetEntity, new DamageOnCollisionComponent(100));
         this.addComponent(targetEntity, new LifeComponent(100));
-        this.addComponent(targetEntity, new IsRemoved(removed));
+        this.addComponent(targetEntity, new Active(active));
+    }
+
+    createExplosion(x, y, active = false,) {
+        for (let i = 0; i < 60; i++) {
+            const particleEntity = this.createEntity();
+            this.addComponent(particleEntity, new RenderComponent("circle", {x, y}, "red", {r: Math.random() * 3}));
+            this.addComponent(particleEntity, new RenderContext("gameCtx"));
+            this.addComponent(particleEntity, new Tag("particle"))
+            this.addComponent(particleEntity, new Velocity(0, 0));
+            this.addComponent(particleEntity, new Gravity(0, 0.05));
+            this.addComponent(particleEntity, new Alpha(1));
+            this.addComponent(particleEntity, new Active(active));
+        }
     }
 }
 
@@ -670,9 +745,10 @@ class EventListeners {
     shoot(e) {
         let endT = (new Date().getTime() - this.startT);
         this.startT = 0;
-        if (endT >= 1000) {
-            endT = 1000;
+        if (endT >= 1500) {
+            endT = 1500;
         }
+        
         const rect = this.gameCanvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
@@ -705,7 +781,7 @@ class EventListeners {
         // if (canShoot) {
             // canShoot = false;
             // bullets.push(new Bullet(bulletOffsetX, bulletOffsetY, new Vec2(bulletDirectionX, bulletDirectionY), endT, gameCtx));
-            this.entityManager.createBullet(bulletOffsetX, bulletOffsetY, {x: bulletDirectionX, y: bulletDirectionY}, endT, rotation.radians);
+            this.entityManager.createBullet(bulletOffsetX, bulletOffsetY, {x: bulletDirectionX, y: bulletDirectionY}, endT, rotation.radians, true);
             // setTimeout(() => {
             //     canShoot = true;
             // }, 1500)
@@ -728,16 +804,12 @@ class CollisionDetectionStystem {
         this.gameCanvasBounds.h = gameCtx.canvas.height;
     }
 
-    init () {}
-
-    checkBulletCollision() {}
-
     update () {
         this.entityManager.entities.forEach(entityId => {
             const tag = this.entityManager.getComponent(entityId, "Tag");
-            const componentIsRemoved = this.entityManager.getComponent(entityId, "IsRemoved");
+            const active = this.entityManager.getComponent(entityId, "Active");
 
-            if (tag.tag === "bullet" && !componentIsRemoved.isRemoved) {
+            if (tag.tag === "bullet" && active.isActive) {
                 const renderComponent = this.entityManager.getComponent(entityId, "RenderComponent");
                 // check out of bounds
                 if (renderComponent &&  (renderComponent.position.x >= this.gameCanvasBounds.w || renderComponent.position.x <= -50 || renderComponent.position.y >= this.gameCanvasBounds.h)) {
@@ -745,15 +817,15 @@ class CollisionDetectionStystem {
                 }
                 // check collision with targets
                 if (renderComponent) {
-                    const isRemoved = this.checkCollisionWithTargets(renderComponent);
-                    if (isRemoved) {
+                    const isCollision = this.checkCollisionWithTargets(renderComponent);
+                    if (isCollision) {
+                        this.createExplosion(renderComponent);
                         this.resetBullet(entityId, renderComponent);
-                        // create explosion
                     }
                 }
 
                 // check collision with terrain
-                console.log("here")
+                console.log("xxx")
             }
         });
     }
@@ -763,8 +835,8 @@ class CollisionDetectionStystem {
         for (const [targetEntityId, value] of tags)  {
             if (value.tag === "target") {
                 const targetRenderComponent = this.entityManager.getComponent(targetEntityId, "RenderComponent");
-                const componentIsRemoved = this.entityManager.getComponent(targetEntityId, "IsRemoved");
-                if (componentIsRemoved === undefined || componentIsRemoved.isRemoved === false) {
+                const active = this.entityManager.getComponent(targetEntityId, "Active");
+                if (active !== undefined && active.isActive === true) {
                     const overlaps = checkOverlap(bulletRenderComponent, targetRenderComponent);
                     if (overlaps) {
                         this.resetTarget(targetEntityId, targetRenderComponent);
@@ -777,7 +849,7 @@ class CollisionDetectionStystem {
     }
 
     resetBullet(entityId, renderComponent) {
-        const isRemovedComponent = this.entityManager.getComponent(entityId, "IsRemoved");
+        const active = this.entityManager.getComponent(entityId, "Active");
         const velocity = this.entityManager.getComponent(entityId, "Velocity");
         const rotation = this.entityManager.getComponent(entityId, "Rotation");
 
@@ -786,16 +858,38 @@ class CollisionDetectionStystem {
         velocity.vec2.x = 0;
         velocity.vec2.y = 0;
         rotation.radians = 0;
-        isRemovedComponent.isRemoved = true;
+        active.isActive = false;
     }
 
     resetTarget(entityId, renderComponent) {
-        const isRemovedComponent = this.entityManager.getComponent(entityId, "IsRemoved");
-        isRemovedComponent.isRemoved = true;
+        renderComponent.position.x = randomRange(this.gameCanvasBounds.w/2, this.gameCanvasBounds.w - 10);
+        renderComponent.position.y = randomRange(100, this.gameCanvasBounds.h - 100);
+        // const active = this.entityManager.getComponent(entityId, "Active");
+        // active.isActive = false;
         
     }
 
-    createExplosion() {}
+    createExplosion(renderComponent) {
+        this.entityManager.entities.forEach(entityId => {
+            const tag = this.entityManager.getComponent(entityId, "Tag");
+            if (tag && tag.tag === "particle") {
+                const active = this.entityManager.getComponent(entityId, "Active");
+                const alphaComponent = this.entityManager.getComponent(entityId, "Alpha");
+                alphaComponent.alpha = 1;
+                active.isActive = true;
+
+                const xVel = (Math.random() - 0.5) * (Math.random() * 6);
+                const yVel = (Math.random() - 1) * (Math.random() * 5);
+                const particleRenderComponent = this.entityManager.getComponent(entityId, "RenderComponent");
+                const particleVelocityComponent = this.entityManager.getComponent(entityId, "Velocity");
+                particleVelocityComponent.vec2.x = xVel;
+                particleVelocityComponent.vec2.y = yVel;
+
+                particleRenderComponent.position.x = renderComponent.position.x;
+                particleRenderComponent.position.y = renderComponent.position.y;
+            }
+        })
+    }
 }
 
 const loadGame = () => {
@@ -805,15 +899,20 @@ const loadGame = () => {
 
     const entityManager = new EntityManager();
 
+    entityManager.createTerrain({x: 0, y: 0}, gameCanvas.width, gameCanvas.height);
     entityManager.createPlayer({x: 10, y: gameCanvas.height - 100});
-    entityManager.createBullet(100, 0, 0, 0, 0, true);
-    entityManager.createTarget(400, 50);
-    entityManager.createTarget(600, 400);
-    entityManager.createTarget(740, 200);
+    entityManager.createBullet(100, 100, 0, 0, 0, false);
+    entityManager.createTarget(400, 50, true);
+    entityManager.createTarget(600, 400, true);
+    entityManager.createTarget(740, 200, true);
+
+    entityManager.createExplosion(100, 100, false);
 
 
 
     const eventListeners = new EventListeners(gameCanvas, entityManager, eventManager);
+
+    const movementSystem = new MovementSystem(entityManager, eventManager);
 
     const renderSystem = new RenderSystem(entityManager, contexts, eventManager);
     const mouseTrackingSystem = new MouseTrackingSystem(entityManager, eventManager);
@@ -834,6 +933,7 @@ const loadGame = () => {
                 power.setPower((new Date().getTime() - startT));
             }
         }
+        movementSystem.update(deltaTime);
         renderSystem.update(deltaTime);
         collisionDetectionSystem.update();
         // gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
