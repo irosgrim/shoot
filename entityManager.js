@@ -76,7 +76,7 @@ export class EntityManager {
 
     createBg(w, h) {
         const bgEntityId = this.createEntity();
-        this.addComponent(bgEntityId, new RenderComponent("image", {x: 0, y: 0}, "", {w, h}, "./mountains.png"));
+        this.addComponent(bgEntityId, new RenderComponent("image", {x: 0, y: 0}, "", {w, h}, "./background.png"));
         this.addComponent(bgEntityId, new RenderContext("gameCtx"));
         this.addComponent(bgEntityId, new Tag("bg"));
         this.addComponent(bgEntityId, new Active(true));
@@ -103,7 +103,7 @@ export class EntityManager {
     createBullet(x, y, velocity, speed = 1, radians, active = false) {
         const bulletEntityId = this.createEntity();
 
-        this.addComponent(bulletEntityId, new RenderComponent("rectangle", {x, y}, "white", {w: 10, h:20}));
+        this.addComponent(bulletEntityId, new RenderComponent("rectangle", {x, y}, "black", {w: 10, h:20}));
         this.addComponent(bulletEntityId, new Rotation(radians));
         this.addComponent(bulletEntityId, new Velocity(velocity.x * speed, velocity.y * speed));
         this.addComponent(bulletEntityId, new Gravity(0, 8));
