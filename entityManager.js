@@ -84,26 +84,27 @@ export class EntityManager {
 
 
     createPlayer(position) {
-        const tankBaseEntityId = this.createEntity();
-        this.addComponent(tankBaseEntityId, new RenderComponent("rectangle", {...position, x: position.x + 20}, "blue", {w: 60, h: 20}));
-        this.addComponent(tankBaseEntityId, new RenderContext("gameCtx"));
-        this.addComponent(tankBaseEntityId, new Tag("tankbase"))
-        this.addComponent(tankBaseEntityId, new Active(true));
-    
         const cannonEntityId = this.createEntity();
-        this.addComponent(cannonEntityId, new RenderComponent("rectangle", {x: position.x + 50, y: position.y - 5}, "red", {w: 10, h: 40}));
+        this.addComponent(cannonEntityId, new RenderComponent("image", {x: position.x + 60, y: position.y + 10}, "red", {w: 10, h: 40}, "./barrel.png"));
         this.addComponent(cannonEntityId, new Rotation(0));
         this.addComponent(cannonEntityId, new EventListener("mouse-rotation"));
         this.addComponent(cannonEntityId, new RenderContext("gameCtx"));
         this.addComponent(cannonEntityId, new Tag("cannon"))
         this.addComponent(cannonEntityId, new Active(true));
 
+        const tankBaseEntityId = this.createEntity();
+        this.addComponent(tankBaseEntityId, new RenderComponent("image", {...position, x: position.x + 20}, "blue", {w: 80, h: 44}, "./tank.png"));
+        this.addComponent(tankBaseEntityId, new RenderContext("gameCtx"));
+        this.addComponent(tankBaseEntityId, new Tag("tankbase"))
+        this.addComponent(tankBaseEntityId, new Active(true));
+    
+
     }
 
     createBullet(x, y, velocity, speed = 1, radians, active = false) {
         const bulletEntityId = this.createEntity();
 
-        this.addComponent(bulletEntityId, new RenderComponent("rectangle", {x, y}, "black", {w: 10, h:20}));
+        this.addComponent(bulletEntityId, new RenderComponent("image", {x, y}, "black", {w: 8, h:20}, "./bullet.png"));
         this.addComponent(bulletEntityId, new Rotation(radians));
         this.addComponent(bulletEntityId, new Velocity(velocity.x * speed, velocity.y * speed));
         this.addComponent(bulletEntityId, new Gravity(0, 8));

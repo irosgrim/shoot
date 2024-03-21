@@ -44,7 +44,7 @@ export class EventListeners {
         }
         const tankCenterX = cannon.position.x;
         const tankCenterY = cannon.position.y;
-        const tankHeight = cannon.size.h + 20;
+        const tankHeight = cannon.size.h + 10;
         const bulletSize = 10;
 
         // calculate distance from mouse click to player center

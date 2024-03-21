@@ -161,9 +161,7 @@ export class RenderSystem {
         ctx.rotate(newRotationRadians + Math.PI / 2);
         
         ctx.fillStyle = renderComponent.color;
-        ctx.beginPath();
-        ctx.fillRect(-renderComponent.size.w/2, -renderComponent.size.h/2, renderComponent.size.w, renderComponent.size.h);
-        ctx.fill();
+        ctx.drawImage(renderComponent.image, -renderComponent.size.w/2, -renderComponent.size.h/2, renderComponent.size.w, renderComponent.size.h);
         
         // get the coords of the bullet tip. This will be used for alpha detection against the terrain
         const matrix = ctx.getTransform(); 
@@ -198,13 +196,9 @@ export class RenderSystem {
             // `;
             const adjustedAngleRadians = adjustedAngleDegrees * (Math.PI / 180);
             ctx.rotate(adjustedAngleRadians);
-            ctx.beginPath();
-            ctx.fillStyle = color;
-            ctx.fillRect(-size.w / 2, -size.h, size.w, size.h);
+            ctx.drawImage(renderComponent.image, -size.w / 2, -size.h, renderComponent.size.w, renderComponent.size.h);
             ctx.restore();
-            ctx.closePath();
         }
-        ctx.fillRect(-size.w / 2, -size.h, size.w, size.h);
     }
 
     drawDefaultShape(ctx, components) {
