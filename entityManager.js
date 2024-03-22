@@ -104,7 +104,7 @@ export class EntityManager {
     createBullet(x, y, velocity, speed = 1, radians, active = false) {
         const bulletEntityId = this.createEntity();
 
-        this.addComponent(bulletEntityId, new RenderComponent("image", {x, y}, "black", {w: 8, h:20}, "./bullet.png"));
+        this.addComponent(bulletEntityId, new RenderComponent("image", {x, y}, "black", {w: 12, h:26}, "./bullet.png"));
         this.addComponent(bulletEntityId, new Rotation(radians));
         this.addComponent(bulletEntityId, new Velocity(velocity.x * speed, velocity.y * speed));
         this.addComponent(bulletEntityId, new Gravity(0, 8));
@@ -117,10 +117,22 @@ export class EntityManager {
         const targetEntity = this.createEntity();
         this.addComponent(targetEntity, new RenderComponent("rectangle", {x, y}, "red", {w: 10, h:100}));
         this.addComponent(targetEntity, new RenderContext("gameCtx"));
-        this.addComponent(targetEntity, new Tag("target"))
+        this.addComponent(targetEntity, new Tag("target"));
         this.addComponent(targetEntity, new DamageOnCollisionComponent(100));
         this.addComponent(targetEntity, new LifeComponent(100));
         this.addComponent(targetEntity, new Active(active));
+    }
+    createWindParticles(w, h) {
+        for(let i=0; i<30; i++) {
+            const windParticleEntity = this.createEntity();
+            this.addComponent(windParticleEntity, new RenderComponent("circle", {x: Math.round(Math.random() * w), y: Math.round(Math.random() * -500)}, "pink", {r: Math.round(Math.random() * 10)}));
+            this.addComponent(windParticleEntity, new RenderContext("gameCtx"));
+            this.addComponent(windParticleEntity, new Tag("wind-particle"));
+            this.addComponent(windParticleEntity, new Velocity(Math.random() * 2, Math.random() * 2));
+            this.addComponent(windParticleEntity, new Gravity(0, 0.4));
+            this.addComponent(windParticleEntity, new Alpha(1));
+            this.addComponent(windParticleEntity, new Active(true));
+        }
     }
 
     createExplosion(x, y, active = false,) {

@@ -82,6 +82,7 @@ const loadGame = () => {
     const explosionSystem = new ExplosionSystem(entityManager, eventManager, terrainCtx);
 
     entityManager.createBg(gameCanvas.width, gameCanvas.height);
+    entityManager.createWindParticles(gameCanvas.width, gameCanvas.height);
     entityManager.createTerrain({x: 0, y: 0}, gameCanvas.width, gameCanvas.height);
     entityManager.createPlayer({x: 10, y: gameCanvas.height - 100});
     entityManager.createBullet(100, 100, 0, 0, 0, false);

@@ -1,4 +1,4 @@
-import { checkOverlap, randomRange } from "./math.js";
+import { checkOverlap, randomRange, Vec2 } from "./math.js";
 
 export class ExplosionSystem {
     constructor(entityManager, eventManager, terrainCtx) {
@@ -27,6 +27,7 @@ export class ExplosionSystem {
     createHole(position) {
         // paint and merge the hole with the terrain context
         this.terrainCtx.beginPath();
+        this.terrainCtx.fillStyle = "red";
         this.terrainCtx.globalCompositeOperation = "destination-out";
         this.terrainCtx.arc(position.x, position.y, 20, 0, Math.PI * 2, false);
         this.terrainCtx.fill();
@@ -35,7 +36,7 @@ export class ExplosionSystem {
         const minRadius = 1; 
         const maxRadius = 10; 
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 15; i++) {
             const angle = Math.random() * Math.PI * 2; 
             const distance = (Math.random() * radiusOfEffect) + 10; 
             const smallCircleX = position.x + distance * Math.cos(angle);
@@ -112,6 +113,19 @@ export class MovementSystem {
                         active.isActive = false;
                     }
                 }
+               if (tag && tag.tag === "wind-particle") {
+                    const dampeningFactor = 0.99;
+                    const windStrength = -100;
+                    const windDirection = 0;
+                    const windVector = new Vec2(windStrength, windDirection);
+                    velocityComponent.vec2.add(windVector.scaleNew(deltaTime));
+                    const tempVelocity = velocityComponent.vec2.scaleNew(deltaTime);
+                    renderComponent.position.add(tempVelocity);
+                    velocityComponent.vec2.add(gravity.vec2); 
+                    
+                    velocityComponent.vec2.multiply(new Vec2(dampeningFactor, dampeningFactor));
+                }
+
             }
         })
     }
@@ -272,9 +286,15 @@ export class CollisionDetectionStystem {
         this.entityManager.entities.forEach(entityId => {
             const tag = this.entityManager.getComponent(entityId, "Tag");
             const active = this.entityManager.getComponent(entityId, "Active");
+            const renderComponent = this.entityManager.getComponent(entityId, "RenderComponent");
+             if (tag.tag === "wind-particle" && active.isActive) {
+                if (renderComponent &&  (renderComponent.position.x >= this.gameCanvasBounds.w || renderComponent.position.x <= -50 || renderComponent.position.y >= this.gameCanvasBounds.h)) {
+                    renderComponent.position.x = Math.round(Math.random() * this.gameCanvasBounds.w);
+                    renderComponent.position.y = Math.round(Math.random() * -100);
 
+                }
+             }
             if (tag.tag === "bullet" && active.isActive) {
-                const renderComponent = this.entityManager.getComponent(entityId, "RenderComponent");
                 // check out of bounds
                 if (renderComponent &&  (renderComponent.position.x >= this.gameCanvasBounds.w || renderComponent.position.x <= -50 || renderComponent.position.y >= this.gameCanvasBounds.h)) {
                     this.resetBullet(entityId, renderComponent);
