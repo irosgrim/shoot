@@ -11,10 +11,10 @@ import {
     LifeComponent, 
     Alpha 
 } from "./components.js";
+import { v4 as uuidv4 } from 'https://jspm.dev/uuid'
 
 export class EntityManager {
     constructor(eventManager) {
-        this.nextEntityId = 0;
         this.entities = new Set();
         this.componentsByName = new Map();
         this.eventManager = eventManager;
@@ -26,10 +26,15 @@ export class EntityManager {
         this.eventManager.listen("shoot", this.shoot.bind(this));
     }
 
-    createEntity() {
-        const id = this.nextEntityId++;
-        this.entities.add(id);
-        return id;
+    createEntity(id) {
+        if (id) {
+            this.entities.add(id);
+            return id;
+        } else {
+            const id = uuidv4();
+            this.entities.add(id);
+            return id;
+        }
     }
 
     removeEntity(entityId) {
@@ -83,8 +88,8 @@ export class EntityManager {
     }
 
 
-    createPlayer(position) {
-        const cannonEntityId = this.createEntity();
+    createPlayer(position, id) {
+        const cannonEntityId = this.createEntity(id);
         this.addComponent(cannonEntityId, new RenderComponent("image", {x: position.x + 60, y: position.y + 10}, "red", {w: 10, h: 40}, "./barrel.png"));
         this.addComponent(cannonEntityId, new Rotation(0));
         this.addComponent(cannonEntityId, new EventListener("mouse-rotation"));
@@ -98,7 +103,7 @@ export class EntityManager {
         this.addComponent(tankBaseEntityId, new Tag("tankbase"))
         this.addComponent(tankBaseEntityId, new Active(true));
     
-
+        return [cannonEntityId, tankBaseEntityId];
     }
 
     createBullet(x, y, velocity, speed = 1, radians, active = false) {
@@ -111,16 +116,19 @@ export class EntityManager {
         this.addComponent(bulletEntityId, new RenderContext("gameCtx"));
         this.addComponent(bulletEntityId, new Tag("bullet"))
         this.addComponent(bulletEntityId, new Active(active));
+
+        return [bulletEntityId];
     }
 
-    createTarget(x, y, active = false) {
-        const targetEntity = this.createEntity();
+    createTarget(x, y, active = false, targetId) {
+        const targetEntity = this.createEntity(targetId);
         this.addComponent(targetEntity, new RenderComponent("rectangle", {x, y}, "red", {w: 10, h:100}));
         this.addComponent(targetEntity, new RenderContext("gameCtx"));
         this.addComponent(targetEntity, new Tag("target"));
         this.addComponent(targetEntity, new DamageOnCollisionComponent(100));
         this.addComponent(targetEntity, new LifeComponent(100));
         this.addComponent(targetEntity, new Active(active));
+        return [targetEntity];
     }
     createWindParticles(w, h) {
         for(let i=0; i<30; i++) {

@@ -1,4 +1,5 @@
 import { checkOverlap, randomRange, Vec2 } from "./math.js";
+import { socket } from "./socket.js";
 
 export class ExplosionSystem {
     constructor(entityManager, eventManager, terrainCtx) {
@@ -13,10 +14,31 @@ export class ExplosionSystem {
 
     }
 
-    handleCollision({ entityId, type, position, components }) {
+    createCircles(position) {
+        const circles = [];
+        const radiusOfEffect = 20; 
+        const minRadius = 1; 
+        const maxRadius = 10; 
+        for (let i = 0; i < 15; i++) {
+            const angle = Math.random() * Math.PI * 2; 
+            const distance = (Math.random() * radiusOfEffect) + 10; 
+            const circleX = position.x + distance * Math.cos(angle);
+            const circleY = position.y + distance * Math.sin(angle);
+            const circleRadius = minRadius + Math.random() * (maxRadius - minRadius); 
+            circles.push({x: circleX, y: circleY, r: circleRadius})
+        };
+        return circles;
+    }
+
+    handleCollision({ entityId, type, position, components, circles = [], otherPlayer = false }) {
         if (type === "terrain") {
+            const smallCircles = circles.length > 0 ? circles : this.createCircles(position);
+            if (!otherPlayer) {
+                socket.emit("terrain-collision", {position, circles: smallCircles});
+            }
+
             this.createExplosion(position);
-            this.createHole(position);
+            this.createHole(position, smallCircles);
         } 
         
          if (type === "target") {
@@ -24,27 +46,17 @@ export class ExplosionSystem {
         } 
     }
 
-    createHole(position) {
+    createHole(position, circles = []) {
         // paint and merge the hole with the terrain context
         this.terrainCtx.beginPath();
         this.terrainCtx.fillStyle = "red";
         this.terrainCtx.globalCompositeOperation = "destination-out";
         this.terrainCtx.arc(position.x, position.y, 20, 0, Math.PI * 2, false);
         this.terrainCtx.fill();
-
-        const radiusOfEffect = 20; 
-        const minRadius = 1; 
-        const maxRadius = 10; 
-
-        for (let i = 0; i < 15; i++) {
-            const angle = Math.random() * Math.PI * 2; 
-            const distance = (Math.random() * radiusOfEffect) + 10; 
-            const smallCircleX = position.x + distance * Math.cos(angle);
-            const smallCircleY = position.y + distance * Math.sin(angle);
-            const smallCircleRadius = minRadius + Math.random() * (maxRadius - minRadius); 
-            
+        const smallCircles = circles.length > 0 ? circles : this.createCircles(position);
+        for (const circle of smallCircles) {
             this.terrainCtx.beginPath();
-            this.terrainCtx.arc(smallCircleX, smallCircleY, smallCircleRadius, 0, Math.PI * 2, false);
+            this.terrainCtx.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, false);
             this.terrainCtx.fill();
         }
 
@@ -94,15 +106,13 @@ export class MovementSystem {
                     const tempVelocity = velocityComponent.vec2.scaleNew(deltaTime);
                     renderComponent.position.add(tempVelocity);
                     velocityComponent.vec2.add(gravity.vec2);
-                    velocityComponent.vec2.x *= 0.999;
+                    velocityComponent.vec2.multiply({x: 0.999}).round();
                 }
                 if (tag && tag.tag === "particle") {
                     const alphaComponent = this.entityManager.getComponent(entityId, "Alpha");
                     velocityComponent.vec2.add(gravity.vec2);
-
-                    velocityComponent.vec2.x *= 0.99; // air resistance
-                    renderComponent.position.x += velocityComponent.vec2.x;
-                    renderComponent.position.y += velocityComponent.vec2.y;
+                    velocityComponent.vec2.multiply({x: 0.99})
+                    renderComponent.position.add(velocityComponent.vec2);
 
                     // set alpha decay
                     alphaComponent.alpha -= 0.6 * deltaTime;
@@ -310,7 +320,7 @@ export class CollisionDetectionStystem {
                         // get pixels at the tip of bullet
                         if (currentBulletPosition) {
                             const terrainCtx = this.contexts.get("terrainCtx");
-                            const { data } = terrainCtx.getImageData(currentBulletPosition.x, currentBulletPosition.y, 1, 1);
+                            const { data } = terrainCtx.getImageData(currentBulletPosition.x, currentBulletPosition.y, 4, 4);
                             // if alpha 1, then collide
                             for (let i = 0; i < data.length; i += 4) {
                                 const alpha = data[i + 3] / 255;
@@ -322,8 +332,8 @@ export class CollisionDetectionStystem {
                         }
                     }
                     if (isTargetCollision || terrainCollision) {
-                        this.eventManager.broadcast("collision", { entityId, type: isTargetCollision ? "target" : "terrain", position: currentBulletPosition, components: {renderComponent} });
                         this.resetBullet(entityId, renderComponent);
+                        this.eventManager.broadcast("collision", { entityId, type: isTargetCollision ? "target" : "terrain", position: currentBulletPosition, components: {renderComponent} });
                     }
                 }
             }
@@ -388,13 +398,25 @@ export class MouseTrackingSystem {
     this.entityManager.entities.forEach(entityId => {
         const eventListener = this.entityManager.getComponent(entityId, "EventListener");
         if (eventListener && eventListener.listener === "mouse-rotation") {
-            const { position } = this.entityManager.getComponent(entityId, "RenderComponent");
-            const rotation = this.entityManager.getComponent(entityId, "Rotation");
+            const eId = socket.io ? socket.getId() : entityId;
+            const { position } = this.entityManager.getComponent(eId, "RenderComponent");
+            const rotation = this.entityManager.getComponent(eId, "Rotation");
             const rectBottomCenterX = position.x;
             const rectBottomCenterY = position.y;
             const angleRadians = Math.atan2(data.y - rectBottomCenterY, data.x - rectBottomCenterX) + Math.PI;
             if (rotation) {
                 rotation.radians = angleRadians;
+                socket.emit("update-entity", {
+                    entityId: eId,
+                    components: [
+                        {
+                            type: "Rotation",
+                            data: {
+                                radians: angleRadians,
+                            }
+                        }
+                    ]
+                })
             }
         }
         });

@@ -1,3 +1,4 @@
+import { socket } from "./socket.js";
 export class EventListeners {
     constructor(gameCanvas, entityManager, eventManager) {
         this.gameCanvas = gameCanvas;
@@ -57,6 +58,34 @@ export class EventListeners {
 
         const bulletOffsetX = tankCenterX + bulletDirectionX * tankHeight - bulletSize / 2;
         const bulletOffsetY = tankCenterY + bulletDirectionY * tankHeight - bulletSize / 2;
-        this.eventManager.broadcast("shoot", {position: {x: bulletOffsetX, y: bulletOffsetY}, velocity: {x: bulletDirectionX, y: bulletDirectionY}, speed: endT, rotation: rotation.radians})
+        const payload = {position: {x: bulletOffsetX, y: bulletOffsetY}, velocity: {x: bulletDirectionX, y: bulletDirectionY}, speed: endT, rotation: rotation.radians};
+        this.eventManager.broadcast("shoot", payload)
+        socket.emit("update-entity", {
+                    entityId: "bullet",
+                    components: [
+                        {
+                            type: "Position",
+                            data: {
+                                position: {x: bulletOffsetX, y: bulletOffsetY},
+                            }
+                        },
+                        {
+                            type: "Velocity",
+                            data: {x: bulletDirectionX, y: bulletDirectionY}
+                        },
+                        {
+                            type: "Speed",
+                            data: {
+                                speed: endT,
+                            }
+                        },
+                        {
+                            type: "Rotation",
+                            data: {
+                                radians: rotation.radians,
+                            }
+                        }
+                    ]
+                })
     }
 }

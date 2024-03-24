@@ -8,46 +8,86 @@ export class Vec2 {
         this.x = x || 0;
         this.y = y || 0;
     }
+    // round to a specified number of decimal places
+    round(decimals = 4) {
+        this.x = parseFloat(this.x.toFixed(decimals));
+        this.y = parseFloat(this.y.toFixed(decimals));
+        return this;
+    }
     set(v) {
         this.x = v.x;
         this.y = v.y;
+        this.round();
     }
     add(v) {
-        this.x += v.x;
-        this.y += v.y;
-        return this;
+        if (v.x !== undefined) {
+            this.x += v.x;
+        }
+        if (v.y !== undefined) {
+            this.y += v.y;
+        }
+        return this.round();
     }
     addNew(v) {
-        return new Vec2(this.x + v.x, this.y + v.y);
+        const newVec2 = new Vec2(this.x, this.y);
+        if (v.x !== undefined) {
+            newVec2.x += v.x;
+        }
+        if (v.y !== undefined) {
+            newVec2.y += v.y;
+        }
+        return newVec2.round();
     }
     subtract(v) {
-        this.x -= v.x;
-        this.y -= v.y;
-        return this;
+        if (v.x !== undefined) {
+            this.x -= v.x;
+        }
+        if (v.y !== undefined) {
+            this.y -= v.y;
+        }
+        return this.round();
     }
     subtractNew(v) {
-        return new Vec2(this.x - v.x, this.y - v.y);
+        const newVec2 = new Vec2(this.x, this.y);
+        if (v.x !== undefined) {
+            newVec2.x -= v.x;
+        }
+        if (v.y !== undefined) {
+            newVec2.y -= v.y;
+        }
+        return newVec2.round();
     }
     multiply(v) {
-        this.x *= v.x;
-        this.y *= v.y;
-        return this;
+        if (v.x !== undefined) {
+            this.x *= v.x;
+        }
+        if (v.y !== undefined) {
+            this.y *= v.y;
+        }
+        return this.round();
     }
     multiplyNew(v) {
-        return new Vec2(this.x * v.x, this.y * v.y);
+        const newVec2 = new Vec2(this.x, this.y);
+        if (v.x !== undefined) {
+            newVec2.x *= v.x;
+        }
+        if (v.y !== undefined) {
+            newVec2.y *= v.y;
+        }
+        return newVec2.round();
     }
     scale(times) {
         this.x *= times;
         this.y *= times;
-        return this;
+        return this.round();
     }
     scaleNew(times) {
-        return new Vec2(this.x * times, this.y * times);
+        return new Vec2(this.x * times, this.y * times).round();
     }
     dist(v) {
         const dx = v.x - this.x;
         const dy = v.y - this.y;
-        return Math.sqrt((dx*dx) + (dy*dy)).toFixed(3);
+        return Math.sqrt((dx*dx) + (dy*dy)).toFixed(3).round();
     }
     length() {
         return Math.sqrt((this.x * this.x) + (this.y * this.y)).toFixed(3);
