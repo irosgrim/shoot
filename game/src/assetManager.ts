@@ -1,9 +1,11 @@
 export class AssetManager {
+  images: Map<string, any>;
+
   constructor() {
     this.images = new Map();
   }
 
-  loadImage(url) {
+  loadImage(url: string) {
     if (this.images.has(url)) {
       return this.images.get(url);
     }
@@ -17,7 +19,7 @@ export class AssetManager {
     return image;
   }
 
-  getImage(url) {
+  getImage(url: string) {
     return this.images.get(url);
   }
 }

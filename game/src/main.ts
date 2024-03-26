@@ -1,17 +1,25 @@
-import { EventManager } from "./eventManager.js";
-import { Vec2 } from "./math.js";
-import { ExplosionSystem, MovementSystem, CollisionDetectionStystem, RenderSystem, MouseTrackingSystem } from "./systems.js";
-import { EventListeners } from "./eventListeners.js";
-import { EntityManager } from "./entityManager.js";
-import { socket } from "./socket.js";
+import './style.css'
+
+import { EventManager } from "./eventManager";
+import { Vec2 } from "./math";
+import { EventListeners } from "./eventListeners";
+import { EntityManager } from "./entityManager";
+import { socket } from "./socket";
+import groundImg from "./assets/ground.png";
+import { ExplosionSystem } from './systems/explosion';
+import { MovementSystem } from './systems/movement';
+import { RenderSystem } from './systems/render';
+import { MouseTrackingSystem } from './systems/mouseTracking';
+import { CollisionDetectionStystem } from './systems/collision';
 
 class GameState {
+  currentBulletPosition: Vec2 | null;
     constructor() {
         this.currentBulletPosition = null;
     }
 
-    updateBulletPosition(position) {
-         this.currentBulletPosition = position;
+    updateBulletPosition(position: Vec2) {
+        this.currentBulletPosition = position;
     }
 
     getBulletPosition() {
@@ -19,26 +27,33 @@ class GameState {
     }
 }
 
-const gameCanvas = document.getElementById("canvas");
+const gameCanvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gameCtx = gameCanvas.getContext("2d", { willReadFrequently: true });
 gameCanvas.width = 1200;
 gameCanvas.height = 600;
 
-const terrainCanvas = document.createElement("canvas");
+const terrainCanvas = document.createElement("canvas") as HTMLCanvasElement;
 const terrainCtx = terrainCanvas.getContext("2d", {willReadFrequently: true});
 terrainCanvas.width = gameCanvas.width;
 terrainCanvas.height = gameCanvas.height;
 
 // const scale = window.devicePixelRatio;
 const groundImage = new Image()
-groundImage.src = "./ground.png";
+groundImage.src = groundImg;
 
 groundImage.onload= (e) => {
-    terrainCtx.drawImage(groundImage, 0, 0)
+    terrainCtx!.drawImage(groundImage, 0, 0)
 }
 
 class Power {
-    constructor(x, y, ctx) {
+  position: Vec2;
+  width: number;
+  height: number;
+  power: number;
+  color: string;
+  ctx: CanvasRenderingContext2D;
+
+  constructor(x: number, y: number, ctx: CanvasRenderingContext2D) {
         this.position = new Vec2(x, y);
         this.width = 200;
         this.height = 20;
@@ -58,7 +73,7 @@ class Power {
         this.draw();
     }
 
-    setPower(current, total = 2000) {
+    setPower(current: number, total = 2000) {
         const currentPercentage = (current * 100) / total;
         const bit = this.width / 100;
         this.power = currentPercentage * bit;
@@ -66,11 +81,7 @@ class Power {
     }
 }
 
-const power = new Power(10, 10, gameCtx);
-
-let deltaTime;
-let oldTimeStamp;
-let fps;
+const power = new Power(10, 10, gameCtx!);
 
 const loadGame = () => {
     const contexts = new Map();
@@ -80,15 +91,15 @@ const loadGame = () => {
     const eventManager = new EventManager();
     const gameState = new GameState();
     const entityManager = new EntityManager(eventManager);
-    const explosionSystem = new ExplosionSystem(entityManager, eventManager, terrainCtx);
+    const explosionSystem = new ExplosionSystem(entityManager, eventManager, terrainCtx!);
 
     entityManager.createBg(gameCanvas.width, gameCanvas.height);
     entityManager.createWindParticles(gameCanvas.width, gameCanvas.height);
     entityManager.createTerrain({x: 0, y: 0}, gameCanvas.width, gameCanvas.height);
-    let entities = [];
+    let entities: string[] = [];
     if (socket.io === undefined) {
         const player = entityManager.createPlayer({x: 10, y: gameCanvas.height - 100});
-        const bullet = entityManager.createBullet(100, 100, 0, 0, 0, false);
+        const bullet = entityManager.createBullet(100, 100, {x: 0, y: 0}, 0, 0, false);
         const t1 = entityManager.createTarget(400, 50, true);
         const t2 = entityManager.createTarget(600, 400, true);
         const t3 = entityManager.createTarget(740, 200, true);
@@ -97,10 +108,10 @@ const loadGame = () => {
 
     entityManager.createExplosion(100, 100, false);
 
-    socket.on("game-state", (gameState) =>  {
+    socket.on("game-state", (gameState: any) =>  {
         const players = gameState.players;
         const targets = gameState.targets;
-        const currPlayer = players[socket.getId()];
+        const currPlayer = players[socket.getId()!];
         if (currPlayer) {}
         for (const entityId of entities) {
             entityManager.removeEntity(entityId);
@@ -119,17 +130,17 @@ const loadGame = () => {
                 entityManager.createTarget(target.x, target.y, target.active, targetId);
             }
         } 
-        entityManager.createBullet(100, 100, 0, 0, 0, false);
+        entityManager.createBullet(100, 100, {x: 0, y: 0}, 0, 0, false);
 
     } );
 
 
-    socket.on("terrain-collision", (payload) => {
+    socket.on("terrain-collision", (payload: any) => {
         explosionSystem.handleCollision({type: "terrain", position: payload.position, circles: payload.circles, otherPlayer: true});
     } );
 
     
-    socket.on("update-entity", (payload) => {
+    socket.on("update-entity", (payload: any) => {
         if (payload.entityId === "bullet") {
             const p = {position: payload.components[0].data.position, velocity: payload.components[1].data, speed: payload.components[2].data.speed, rotation: payload.components[3].data.radians};
 
@@ -141,12 +152,13 @@ const loadGame = () => {
                 switch (component.type) {
                     case "Position":
                         if (comp) {
-                            comp.vec2 = new Vec2(component.data.position)
+                            const pos = component.data.position as {x: number, y: number}
+                            comp.vec2 = new Vec2(pos.x, pos.y)
                         }
                         break;
                     case "Velocity":
                         if (comp) {
-                            comp.vec2 = new Vec2(component.data)
+                            comp.vec2 = new Vec2(component.data.x, component.data.y)
                         }
                         break;
                     case "Rotation":
@@ -173,14 +185,14 @@ const loadGame = () => {
     let accumulator = 0.0;
     let oldTimeStamp = 0;
 
-    const draw = (timeStamp) => {
+    const draw = (timeStamp: number) => {
         let deltaTime = (timeStamp - oldTimeStamp) / 1000;
         oldTimeStamp = timeStamp;
 
         accumulator += deltaTime;
         while (accumulator >= fixedDeltaTime) {
             movementSystem.update(fixedDeltaTime);
-            collisionDetectionSystem.update(fixedDeltaTime); 
+            collisionDetectionSystem.update(); 
             accumulator -= fixedDeltaTime;
         }
         renderSystem.update();

@@ -1,41 +1,48 @@
-import { Vec2 } from "./math.js";
+import { Vec2 } from "./math";
 
-class Component {
-    constructor(name) {
+export class Component {
+    name: string;
+    constructor(name: string) {
         this.name = name;
     }
 }
 
 export class Position extends Component {
-    constructor(x, y) {
+    vec2: Vec2;
+    constructor(x: number, y: number) {
         super("Position");
         this.vec2 = new Vec2(x, y);
     }
 }
 
 export class Rotation extends Component {
-    constructor(angleRadians) {
+    radians: number;
+    constructor(angleRadians: number) {
         super("Rotation");
         this.radians = angleRadians;
     }
 }
 
 export class Velocity extends Component {
-    constructor (x, y) {
+    vec2: Vec2;
+    constructor (x: number, y: number) {
         super("Velocity");
         this.vec2 = new Vec2(x, y);
     }
 }
 
 export class Gravity extends Component {
-    constructor (x, y) {
+    vec2: Vec2;
+    constructor (x: number, y: number) {
         super("Gravity");
         this.vec2 = new Vec2(x, y);
     }
 }
 
 export class Size extends Component {
-    constructor(w, h) {
+    w: number;
+    h: number;
+    constructor(w: number, h: number) {
         super("Size");
         this.w = w;
         this.h = h;
@@ -43,14 +50,25 @@ export class Size extends Component {
 }
 
 export class MousePosition extends Component {
-    constructor(x, y) {
+    vec2: Vec2;
+    constructor(x: number, y: number) {
         super("MousePosition");
         this.vec2 = new Vec2(x, y);
     }
 }
 
 export class Shape extends Component {
-    constructor(type, size) {
+    type: string;
+    size: {
+        r: number | null,
+        w: number | null,
+        h: number | null,
+    }
+    constructor(type: string, size: {
+        r?: number,
+        w?: number,
+        h?: number,
+    }) {
         super("Shape");
         this.type = type;
         this.size = {
@@ -62,36 +80,41 @@ export class Shape extends Component {
 }
 
 export class Tag extends Component {
-  constructor(tag) {
-    super("Tag");
-    this.tag = tag;
-  }
+    tag: string;
+    constructor(tag: string) {
+        super("Tag");
+        this.tag = tag;
+    }
 }
 
 
 export class Color extends Component {
-    constructor(color) {
+    color: string;
+    constructor(color: string) {
         super("Color");
         this.color = color;
     }
 }
 
 export class Alpha extends Component {
-    constructor(alphaValue) {
+    alpha: number;
+    constructor(alphaValue: number) {
         super("Alpha");
         this.alpha = alphaValue;
     }
 }
 
 export class RenderContext extends Component {
-    constructor(contextKey) {
+    contextKey: string;
+    constructor(contextKey: string) {
         super("RenderContext");
         this.contextKey = contextKey;
     }
 }
 
 export class EventListener extends Component{
-    constructor(topic) {
+    listener: string;
+    constructor(topic: string) {
         super("EventListener");
         this.listener = topic;
     }
@@ -99,7 +122,20 @@ export class EventListener extends Component{
 
 
 export class RenderComponent extends Component {
-  constructor(shape, position, color, size, imagePath = null) {
+    shape: "rectangle" | "circle" | "image";
+    position: Vec2;
+    color: string;
+    size: {
+        r: number | null,
+        w: number | null,
+        h: number | null,
+    }
+    image: HTMLImageElement | null;
+  constructor(shape: "rectangle" | "circle" | "image", position: {x: number, y: number} | Vec2, color: string, size: {
+        r?: number,
+        w?: number,
+        h?: number,
+    }, imagePath: string | null = null) {
     super("RenderComponent");
     this.position = new Vec2(position.x, position.y);
     this.color = color;
@@ -111,20 +147,22 @@ export class RenderComponent extends Component {
     };
     this.image = null;
     if (imagePath) {
-        this.image = new Image(this.size.w, this.size.h);
+        this.image = new Image(this.size.w!, this.size.h!);
         this.image.src = imagePath;
     }
   }
 }
 
 export class DamageOnCollisionComponent extends Component {
-  constructor(damage) {
-    super("DamageOnCollisionComponent");
-    this.damage = damage;
-  }
+    damage: number;
+    constructor(damage: number) {
+        super("DamageOnCollisionComponent");
+        this.damage = damage;
+    }
 }
 
 export class LifeComponent extends Component {
+    life: number;
     constructor(lifeAmount = 100) {
         super("LifeComponent");
         this.life = lifeAmount;
@@ -132,14 +170,17 @@ export class LifeComponent extends Component {
 }
 
 export class Active extends Component {
-    constructor(removed) {
+    isActive: boolean;
+    constructor(removed: boolean) {
         super("Active");
         this.isActive = removed;
     }
 }
 
 export class Collider extends Component {
-    constructor(width, height) {
+    w: number;
+    h: number;
+    constructor(width: number, height: number) {
         super("Collider");
         this.w = width;
         this.h = height;

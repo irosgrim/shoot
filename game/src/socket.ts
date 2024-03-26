@@ -1,4 +1,8 @@
+import { Socket as SocketIo, io } from "socket.io-client";
+
 class Socket {
+    io: SocketIo | undefined;
+    eventQueue: {type: string, eventName: string, cb?: any, payload?: any}[]; 
     constructor() {
         this.io = undefined;
         this.eventQueue = [];
@@ -19,7 +23,7 @@ class Socket {
 
             const create = new URLSearchParams(window.location.search).get("create");
             const join = new URLSearchParams(window.location.search).get("join");
-            if (create) this.emit("create-game");
+            if (create) this.emit("create-game", "");
             if (join) this.emit("join-game", join);
         });
 
@@ -28,7 +32,7 @@ class Socket {
         });
     }
 
-    on(eventName, cb) {
+    on(eventName: string, cb: any) {
         if (this.io) {
             this.io.on(eventName, cb);
         } else {
@@ -36,7 +40,7 @@ class Socket {
         }
     }
 
-    emit(eventName, payload) {
+    emit(eventName: string, payload: any) {
         if (this.io) {
             this.io.emit(eventName, payload);
         }  else {
@@ -54,10 +58,11 @@ class Socket {
     processQueue() {
         while (this.eventQueue.length > 0) {
             const event = this.eventQueue.shift();
-            if (event.type === 'on') {
-                this.on(event.eventName, event.cb);
-            } else if (event.type === 'emit') {
-                this.emit(event.eventName, event.payload);
+            const ev = event!;
+            if (event!.type === 'on') {
+                this.on(ev.eventName, ev.cb);
+            } else if (ev.type === 'emit') {
+                this.emit(ev.eventName, ev.payload);
             }
         }
     }
@@ -65,4 +70,4 @@ class Socket {
 
 export const socket = new Socket();
 
-socket.on("game-id", (msg) => console.log("Game id: ", msg) );
+socket.on("game-id", (msg: string) => console.log("Game id: ", msg) );

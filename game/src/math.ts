@@ -1,10 +1,13 @@
+import { RenderComponent } from "./components";
 
-export const randomRange = (min, max) => {
+export const randomRange = (min: number, max: number) => {
   return min + Math.random() * (max - min);
 }
 
 export class Vec2 {
-    constructor(x, y) {
+    x: number;
+    y: number;
+    constructor(x: number, y: number) {
         this.x = x || 0;
         this.y = y || 0;
     }
@@ -14,12 +17,12 @@ export class Vec2 {
         this.y = parseFloat(this.y.toFixed(decimals));
         return this;
     }
-    set(v) {
+    set(v: {x: number, y: number}) {
         this.x = v.x;
         this.y = v.y;
         this.round();
     }
-    add(v) {
+    add(v: {x?: number, y?: number}) {
         if (v.x !== undefined) {
             this.x += v.x;
         }
@@ -28,7 +31,7 @@ export class Vec2 {
         }
         return this.round();
     }
-    addNew(v) {
+    addNew(v: {x?: number, y?: number}) {
         const newVec2 = new Vec2(this.x, this.y);
         if (v.x !== undefined) {
             newVec2.x += v.x;
@@ -38,7 +41,7 @@ export class Vec2 {
         }
         return newVec2.round();
     }
-    subtract(v) {
+    subtract(v: {x?: number, y?: number}) {
         if (v.x !== undefined) {
             this.x -= v.x;
         }
@@ -47,7 +50,7 @@ export class Vec2 {
         }
         return this.round();
     }
-    subtractNew(v) {
+    subtractNew(v: {x?: number, y?: number}) {
         const newVec2 = new Vec2(this.x, this.y);
         if (v.x !== undefined) {
             newVec2.x -= v.x;
@@ -57,7 +60,7 @@ export class Vec2 {
         }
         return newVec2.round();
     }
-    multiply(v) {
+    multiply(v: {x?: number, y?: number}) {
         if (v.x !== undefined) {
             this.x *= v.x;
         }
@@ -66,7 +69,7 @@ export class Vec2 {
         }
         return this.round();
     }
-    multiplyNew(v) {
+    multiplyNew(v: {x?: number, y?: number}) {
         const newVec2 = new Vec2(this.x, this.y);
         if (v.x !== undefined) {
             newVec2.x *= v.x;
@@ -76,32 +79,32 @@ export class Vec2 {
         }
         return newVec2.round();
     }
-    scale(times) {
+    scale(times: number) {
         this.x *= times;
         this.y *= times;
         return this.round();
     }
-    scaleNew(times) {
+    scaleNew(times: number) {
         return new Vec2(this.x * times, this.y * times).round();
     }
-    dist(v) {
+    dist(v: Vec2 | {x: number, y: number}) {
         const dx = v.x - this.x;
         const dy = v.y - this.y;
-        return Math.sqrt((dx*dx) + (dy*dy)).toFixed(3).round();
+        return Math.sqrt((dx*dx) + (dy*dy)).toFixed(3);
     }
     length() {
         return Math.sqrt((this.x * this.x) + (this.y * this.y)).toFixed(3);
     }
-    isEqual(v) {
+    isEqual(v: Vec2 | {x: number, y: number}) {
         return (this.x === v.x) && (this.y === v.y);
     }
 }
 
-export const checkOverlap = (b1, b2) => {
-    if (b1.position.x + b1.size.w < b2.position.x ||    
-        b1.position.x > b2.position.x + b2.size.w ||    
-        b1.position.y + b1.size.h < b2.position.y ||   
-        b1.position.y > b2.position.y + b2.size.h) {    
+export const checkOverlap = (b1: RenderComponent, b2: RenderComponent) => {
+    if (b1.position.x + b1.size.w! < b2.position.x ||    
+        b1.position.x > b2.position.x + b2.size.w! ||    
+        b1.position.y + b1.size.h! < b2.position.y ||   
+        b1.position.y > b2.position.y + b2.size.h!) {    
         return false;
     }
     return true;

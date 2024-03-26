@@ -1,6 +1,14 @@
+import { EntityManager } from "./entityManager";
+import { EventManager } from "./eventManager.js";
 import { socket } from "./socket.js";
+
 export class EventListeners {
-    constructor(gameCanvas, entityManager, eventManager) {
+    gameCanvas: HTMLCanvasElement;
+    entityManager: EntityManager;
+    eventManager: EventManager;
+    startT: number;
+
+    constructor(gameCanvas: HTMLCanvasElement, entityManager: EntityManager, eventManager: EventManager) {
         this.gameCanvas = gameCanvas;
         this.entityManager = entityManager;
         this.eventManager = eventManager;
@@ -12,18 +20,18 @@ export class EventListeners {
         this.gameCanvas.addEventListener("mousedown", this.setShootPower.bind(this));
         this.gameCanvas.addEventListener("mouseup", this.shoot.bind(this));
     }
-    trackMouse(e) {
+    trackMouse(e: MouseEvent) {
         const rect = this.gameCanvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         this.eventManager.broadcast("mouse-rotation", {x: mouseX, y: mouseY})
     }
-    setShootPower = (e) => {
+    setShootPower = (e: MouseEvent) => {
         if (e.button === 0) {
             this.startT = new Date().getTime();
         }
     }
-    shoot(e) {
+    shoot(e: MouseEvent) {
         let endT = (new Date().getTime() - this.startT);
         this.startT = 0;
         if (endT >= 1500) {

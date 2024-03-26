@@ -9,12 +9,23 @@ import {
     EventListener, 
     DamageOnCollisionComponent, 
     LifeComponent, 
-    Alpha 
-} from "./components.js";
-import { v4 as uuidv4 } from 'https://jspm.dev/uuid'
+    Alpha, 
+    Component
+} from "./components";
+import { v4 as uuidv4 } from "uuid";
+import { EventManager } from "./eventManager";
+import groundImg from "./assets/ground.png";
+import backgroundImg from "./assets/background.png";
+import barrelImg from "./assets/barrel.png";
+import tankImg from "./assets/tank.png";
+import bulletImg from "./assets/bullet.png";
 
 export class EntityManager {
-    constructor(eventManager) {
+    entities: Set<string>;
+    componentsByName: Map<string, any>;
+    eventManager: EventManager;
+
+    constructor(eventManager: EventManager) {
         this.entities = new Set();
         this.componentsByName = new Map();
         this.eventManager = eventManager;
@@ -26,7 +37,7 @@ export class EntityManager {
         this.eventManager.listen("shoot", this.shoot.bind(this));
     }
 
-    createEntity(id) {
+    createEntity(id?: string) {
         if (id) {
             this.entities.add(id);
             return id;
@@ -37,14 +48,14 @@ export class EntityManager {
         }
     }
 
-    removeEntity(entityId) {
+    removeEntity(entityId: string) {
         this.entities.delete(entityId);
         for (const componentSet of this.componentsByName.values()) {
         componentSet.delete(entityId);
         }
     }
 
-    addComponent(entityId, component) {
+    addComponent(entityId: string, component: Component) {
         const componentName = component.name;
         if (!this.componentsByName.has(componentName)) {
             this.componentsByName.set(componentName, new Map());
@@ -52,12 +63,12 @@ export class EntityManager {
         this.componentsByName.get(componentName).set(entityId, component);
     }
 
-    getComponent(entityId, componentClass) {
+    getComponent(entityId: string, componentClass: string) {
         return this.componentsByName.get(componentClass)?.get(entityId);
     }
 
-    getAllComponents(entityId) {
-        const components = [];
+    getAllComponents(entityId: string) {
+        const components: Component[] = [];
         this.componentsByName.forEach(c => {
             const comp = c.get(entityId);
             if (comp) {
@@ -67,30 +78,30 @@ export class EntityManager {
         return components;
     }
 
-    getEntitiesWithComponent(componentClass) {
+    getEntitiesWithComponent(componentClass: string) {
         return this.componentsByName.get(componentClass) || new Map();
     }
 
-    createTerrain(position, w, h) {
+    createTerrain(position: {x: number, y: number}, w: number, h: number) {
         const terrainEntityId = this.createEntity();
-        this.addComponent(terrainEntityId, new RenderComponent("image", position, "", {w, h}, "./ground.png"));
+        this.addComponent(terrainEntityId, new RenderComponent("image", position, "", {w, h}, groundImg));
         this.addComponent(terrainEntityId, new RenderContext("gameCtx"));
         this.addComponent(terrainEntityId, new Tag("terrain"));
         this.addComponent(terrainEntityId, new Active(true));
     }
 
-    createBg(w, h) {
+    createBg(w: number, h: number) {
         const bgEntityId = this.createEntity();
-        this.addComponent(bgEntityId, new RenderComponent("image", {x: 0, y: 0}, "", {w, h}, "./background.png"));
+        this.addComponent(bgEntityId, new RenderComponent("image", {x: 0, y: 0}, "", {w, h}, backgroundImg));
         this.addComponent(bgEntityId, new RenderContext("gameCtx"));
         this.addComponent(bgEntityId, new Tag("bg"));
         this.addComponent(bgEntityId, new Active(true));
     }
 
 
-    createPlayer(position, id) {
+    createPlayer(position: {x: number, y: number}, id?: string) {
         const cannonEntityId = this.createEntity(id);
-        this.addComponent(cannonEntityId, new RenderComponent("image", {x: position.x + 60, y: position.y + 10}, "red", {w: 10, h: 40}, "./barrel.png"));
+        this.addComponent(cannonEntityId, new RenderComponent("image", {x: position.x + 60, y: position.y + 10}, "red", {w: 10, h: 40}, barrelImg));
         this.addComponent(cannonEntityId, new Rotation(0));
         this.addComponent(cannonEntityId, new EventListener("mouse-rotation"));
         this.addComponent(cannonEntityId, new RenderContext("gameCtx"));
@@ -98,7 +109,7 @@ export class EntityManager {
         this.addComponent(cannonEntityId, new Active(true));
 
         const tankBaseEntityId = this.createEntity();
-        this.addComponent(tankBaseEntityId, new RenderComponent("image", {...position, x: position.x + 20}, "blue", {w: 80, h: 44}, "./tank.png"));
+        this.addComponent(tankBaseEntityId, new RenderComponent("image", {...position, x: position.x + 20}, "blue", {w: 80, h: 44}, tankImg));
         this.addComponent(tankBaseEntityId, new RenderContext("gameCtx"));
         this.addComponent(tankBaseEntityId, new Tag("tankbase"))
         this.addComponent(tankBaseEntityId, new Active(true));
@@ -106,10 +117,10 @@ export class EntityManager {
         return [cannonEntityId, tankBaseEntityId];
     }
 
-    createBullet(x, y, velocity, speed = 1, radians, active = false) {
+    createBullet(x: number, y: number, velocity: {x: number, y: number}, speed = 1, radians: number, active = false) {
         const bulletEntityId = this.createEntity();
 
-        this.addComponent(bulletEntityId, new RenderComponent("image", {x, y}, "black", {w: 12, h:26}, "./bullet.png"));
+        this.addComponent(bulletEntityId, new RenderComponent("image", {x, y}, "black", {w: 12, h:26}, bulletImg));
         this.addComponent(bulletEntityId, new Rotation(radians));
         this.addComponent(bulletEntityId, new Velocity(velocity.x * speed, velocity.y * speed));
         this.addComponent(bulletEntityId, new Gravity(0, 8));
@@ -120,7 +131,7 @@ export class EntityManager {
         return [bulletEntityId];
     }
 
-    createTarget(x, y, active = false, targetId) {
+    createTarget(x: number, y: number, active = false, targetId?: string) {
         const targetEntity = this.createEntity(targetId);
         this.addComponent(targetEntity, new RenderComponent("rectangle", {x, y}, "red", {w: 10, h:100}));
         this.addComponent(targetEntity, new RenderContext("gameCtx"));
@@ -130,7 +141,7 @@ export class EntityManager {
         this.addComponent(targetEntity, new Active(active));
         return [targetEntity];
     }
-    createWindParticles(w, h) {
+    createWindParticles(w: number, h: number) {
         for(let i=0; i<30; i++) {
             const windParticleEntity = this.createEntity();
             this.addComponent(windParticleEntity, new RenderComponent("circle", {x: Math.round(Math.random() * w), y: Math.round(Math.random() * -500)}, "pink", {r: Math.round(Math.random() * 10)}));
@@ -143,20 +154,20 @@ export class EntityManager {
         }
     }
 
-    createExplosion(x, y, active = false,) {
-        for (let i = 0; i < 60; i++) {
+    createExplosion(x: number, y: number, active = false,) {
+        for (let i = 0; i < 40; i++) {
             const particleEntity = this.createEntity();
             this.addComponent(particleEntity, new RenderComponent("circle", {x, y}, "red", {r: Math.random() * 3}));
             this.addComponent(particleEntity, new RenderContext("gameCtx"));
             this.addComponent(particleEntity, new Tag("particle"))
             this.addComponent(particleEntity, new Velocity(0, 0));
-            this.addComponent(particleEntity, new Gravity(0, 0.05));
+            this.addComponent(particleEntity, new Gravity(0, 0.1));
             this.addComponent(particleEntity, new Alpha(1));
             this.addComponent(particleEntity, new Active(active));
         }
     }
 
-    shoot(data) {
+    shoot(data: any) {
         for (const entityId of this.entities) {
             const tagComponent = this.getComponent(entityId, "Tag");
             if (tagComponent && tagComponent.tag === "bullet") {
