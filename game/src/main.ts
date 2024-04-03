@@ -1,10 +1,10 @@
-import './style.css'
+import './style/style.scss'
 
-import { EventManager } from "./eventManager";
-import { Vec2 } from "./math";
-import { EventListeners } from "./eventListeners";
-import { EntityManager } from "./entityManager";
-import { socket } from "./socket";
+import { EventManager } from "./events/eventManager";
+import { Vec2 } from "./lib/math";
+import { EventListeners } from "./events/eventListeners";
+import { EntityManager } from "./entities/entityManager";
+import { socket } from "./socket/socket";
 import groundImg from "./assets/ground.png";
 import { ExplosionSystem } from './systems/explosion';
 import { MovementSystem } from './systems/movement';
@@ -29,8 +29,8 @@ class GameState {
 
 const gameCanvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gameCtx = gameCanvas.getContext("2d", { willReadFrequently: true });
-gameCanvas.width = 1200;
-gameCanvas.height = 600;
+gameCanvas.width = 1445;
+gameCanvas.height = 578;
 
 const terrainCanvas = document.createElement("canvas") as HTMLCanvasElement;
 const terrainCtx = terrainCanvas.getContext("2d", {willReadFrequently: true});
@@ -84,6 +84,8 @@ class Power {
 const power = new Power(10, 10, gameCtx!);
 
 const loadGame = () => {
+    const player1Power = document.getElementById("player1-power");
+
     const contexts = new Map();
     contexts.set("terrainCtx", terrainCtx);
     contexts.set("gameCtx", gameCtx);
@@ -93,17 +95,28 @@ const loadGame = () => {
     const entityManager = new EntityManager(eventManager);
     const explosionSystem = new ExplosionSystem(entityManager, eventManager, terrainCtx!);
 
+    // this.eventManager.broadcast("set-power", {power: new Date().getTime() - this.startT});
+    eventManager.listen("set-power", (power: number) => {
+        requestAnimationFrame(() => {
+            let p = new Date().getTime() - power;
+            if (p >= 1500) {
+                p = 1500;
+            }
+            player1Power!.style.width = (Math.round(p) * 100) / 1500 + "%";
+        });
+    })
+
     entityManager.createBg(gameCanvas.width, gameCanvas.height);
     entityManager.createWindParticles(gameCanvas.width, gameCanvas.height);
     entityManager.createTerrain({x: 0, y: 0}, gameCanvas.width, gameCanvas.height);
     let entities: string[] = [];
     if (socket.io === undefined) {
-        const player = entityManager.createPlayer({x: 10, y: gameCanvas.height - 100});
+        const player = entityManager.createPlayer({x: 20, y: gameCanvas.height - 130});
         const bullet = entityManager.createBullet(100, 100, {x: 0, y: 0}, 0, 0, false);
-        const t1 = entityManager.createTarget(400, 50, true);
-        const t2 = entityManager.createTarget(600, 400, true);
-        const t3 = entityManager.createTarget(740, 200, true);
-        entities = [...player, ...bullet, ...t1, ...t2, ...t3];
+        const t1 = entityManager.createTarget(1250, gameCanvas.height - 200, true);
+        // const t2 = entityManager.createTarget(600, 400, true);
+        // const t3 = entityManager.createTarget(740, 200, true);
+        entities = [...player, ...bullet, ...t1,];
     }
 
     entityManager.createExplosion(100, 100, false);

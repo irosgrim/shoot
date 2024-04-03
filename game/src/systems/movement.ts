@@ -1,7 +1,7 @@
-import { Gravity, RenderComponent, Velocity } from "../components";
-import { EntityManager } from "../entityManager";
-import { EventManager } from "../eventManager";
-import { Vec2 } from "../math";
+import { Gravity, RenderComponent, Velocity } from "../components/components";
+import { EntityManager } from "../entities/entityManager";
+import { EventManager } from "../events/eventManager";
+import { Vec2 } from "../lib/math";
 
 export class MovementSystem {
     entityManager: EntityManager;
@@ -25,6 +25,14 @@ export class MovementSystem {
                     renderComponent.position.add(tempVelocity);
                     velocityComponent.vec2.add(gravity.vec2);
                     velocityComponent.vec2.multiply({x: 0.999}).round();
+
+                    const wind = {x: -12, y: 1}; // wind vector: moderate wind blowing to the left
+                    
+                    velocityComponent.vec2.add(wind).round();
+                    
+                    // air resistance/friction 
+                    velocityComponent.vec2.multiply({x: 0.999, y: 0.999}).round();
+                    
                 }
                 if (tag && tag.tag === "particle") {
                     const alphaComponent = this.entityManager.getComponent(entityId, "Alpha");
@@ -44,7 +52,7 @@ export class MovementSystem {
                if (tag && tag.tag === "wind-particle") {
                     const dampeningFactor = 0.99;
                     const windStrength = -100;
-                    const windDirection = 0;
+                    const windDirection = 10;
                     const windVector = new Vec2(windStrength, windDirection);
                     velocityComponent.vec2.add(windVector.scaleNew(deltaTime));
                     const tempVelocity = velocityComponent.vec2.scaleNew(deltaTime);

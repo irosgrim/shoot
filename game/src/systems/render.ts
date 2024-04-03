@@ -1,6 +1,6 @@
-import { Alpha, RenderComponent, Rotation, Tag, Velocity } from "../components";
-import { EntityManager } from "../entityManager";
-import { EventManager } from "../eventManager";
+import { Alpha, RenderComponent, Rotation, Tag, Velocity } from "../components/components";
+import { EntityManager } from "../entities/entityManager";
+import { EventManager } from "../events/eventManager";
 
 export class RenderSystem {
     gameState: any;
@@ -44,17 +44,19 @@ export class RenderSystem {
         })
     }
 
-    drawBullet(ctx: CanvasRenderingContext2D, components: {renderComponent: RenderComponent, velocity: Velocity}) {
-        const { renderComponent, velocity } = components;
-        const newRotationRadians = Math.atan2(velocity.vec2.y, velocity.vec2.x);
+    drawBullet(ctx: CanvasRenderingContext2D, components: {renderComponent: RenderComponent, velocity: Velocity, rotation?: Rotation}) {
+        const { renderComponent, velocity, rotation } = components;
+        // Determine rotation: directly use the rotation component if available; otherwise, calculate from velocity
+        const rotationRadians = rotation ? rotation.radians : Math.atan2(velocity.vec2.y, velocity.vec2.x) + Math.PI / 2;
+
         ctx.save();
-        ctx.translate(renderComponent.position.x + renderComponent.size.w! / 2, renderComponent.position.y);
-        ctx.rotate(newRotationRadians + Math.PI / 2);
+        ctx.translate(renderComponent.position.x + (renderComponent.size.w! / 2), renderComponent.position.y);
+        ctx.rotate(rotationRadians);
         
         ctx.fillStyle = renderComponent.color;
         ctx.drawImage(renderComponent.image!, -renderComponent.size.w!/2, -renderComponent.size.h!/2, renderComponent.size.w!, renderComponent.size.h!);
-        
-        // get the coords of the bullet tip. This will be used for alpha detection against the terrain
+
+        // Get the coords of the bullet tip for alpha detection against the terrain
         const matrix = ctx.getTransform(); 
         const tipPosition = matrix.transformPoint(new DOMPoint(0, -renderComponent.size.h!/2));
         this.gameState.updateBulletPosition(tipPosition);

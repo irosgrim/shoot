@@ -1,6 +1,6 @@
-import { EntityManager } from "../entityManager";
-import { EventManager } from "../eventManager";
-import { socket } from "../socket";
+import { EntityManager } from "../entities/entityManager";
+import { EventManager } from "../events/eventManager";
+import { socket } from "../socket/socket";
 
 export class MouseTrackingSystem {
     entityManager: EntityManager;
@@ -13,6 +13,28 @@ export class MouseTrackingSystem {
 
     init() {
         this.eventManager.listen("mouse-rotation", this.handleMouseMove.bind(this));
+        this.eventManager.listen("key-rotation", this.updateEntityRotation.bind(this))
+    }
+
+    updateEntityRotation(rotate: "LEFT" | "RIGHT") {
+        this.entityManager.entities.forEach(entityId => {
+            const eventListener = this.entityManager.getComponent(entityId, "EventListener");
+            if (eventListener && eventListener.listener === "key-rotation") {
+                const eId = socket.getId() ?? entityId;
+                const rotation = this.entityManager.getComponent(eId, "Rotation");
+                if (!rotation) return;
+            
+                const rotationSpeed = 0.05;
+            
+                if (rotate === "LEFT") {
+                    rotation.radians -= rotationSpeed;
+                } 
+                if (rotate === "RIGHT") {
+                    rotation.radians += rotationSpeed;
+                }
+            }
+
+        });
     }
 
   handleMouseMove(data: any) {

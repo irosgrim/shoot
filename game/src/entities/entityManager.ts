@@ -11,14 +11,15 @@ import {
     LifeComponent, 
     Alpha, 
     Component
-} from "./components";
+} from "../components/components";
 import { v4 as uuidv4 } from "uuid";
-import { EventManager } from "./eventManager";
-import groundImg from "./assets/ground.png";
-import backgroundImg from "./assets/background.png";
-import barrelImg from "./assets/barrel.png";
-import tankImg from "./assets/tank.png";
-import bulletImg from "./assets/bullet.png";
+import { EventManager } from "../events/eventManager";
+import groundImg from "../assets/ground.png";
+import backgroundImg from "../assets/background.png";
+import barrelImg from "../assets/barrel.png";
+import tankImg from "../assets/snail_left.png";
+import bulletImg from "../assets/bullet.png";
+import gary from "../assets/gary.png";
 
 export class EntityManager {
     entities: Set<string>;
@@ -101,15 +102,17 @@ export class EntityManager {
 
     createPlayer(position: {x: number, y: number}, id?: string) {
         const cannonEntityId = this.createEntity(id);
-        this.addComponent(cannonEntityId, new RenderComponent("image", {x: position.x + 60, y: position.y + 10}, "red", {w: 10, h: 40}, barrelImg));
-        this.addComponent(cannonEntityId, new Rotation(0));
+        this.addComponent(cannonEntityId, new RenderComponent("image", {x: position.x + 40, y: position.y + 10}, "red", {w: 10, h: 40}, barrelImg));
+        this.addComponent(cannonEntityId, new Rotation(2.5));
         this.addComponent(cannonEntityId, new EventListener("mouse-rotation"));
+        this.addComponent(cannonEntityId, new EventListener("key-rotation"));
+
         this.addComponent(cannonEntityId, new RenderContext("gameCtx"));
         this.addComponent(cannonEntityId, new Tag("cannon"))
         this.addComponent(cannonEntityId, new Active(true));
 
         const tankBaseEntityId = this.createEntity();
-        this.addComponent(tankBaseEntityId, new RenderComponent("image", {...position, x: position.x + 20}, "blue", {w: 80, h: 44}, tankImg));
+        this.addComponent(tankBaseEntityId, new RenderComponent("image", {...position, x: position.x + 20}, "blue", {w: 80, h: 54}, tankImg));
         this.addComponent(tankBaseEntityId, new RenderContext("gameCtx"));
         this.addComponent(tankBaseEntityId, new Tag("tankbase"))
         this.addComponent(tankBaseEntityId, new Active(true));
@@ -121,6 +124,8 @@ export class EntityManager {
         const bulletEntityId = this.createEntity();
 
         this.addComponent(bulletEntityId, new RenderComponent("image", {x, y}, "black", {w: 12, h:26}, bulletImg));
+        this.addComponent(bulletEntityId, new EventListener("key-rotation"));
+
         this.addComponent(bulletEntityId, new Rotation(radians));
         this.addComponent(bulletEntityId, new Velocity(velocity.x * speed, velocity.y * speed));
         this.addComponent(bulletEntityId, new Gravity(0, 8));
@@ -133,7 +138,7 @@ export class EntityManager {
 
     createTarget(x: number, y: number, active = false, targetId?: string) {
         const targetEntity = this.createEntity(targetId);
-        this.addComponent(targetEntity, new RenderComponent("rectangle", {x, y}, "red", {w: 10, h:100}));
+        this.addComponent(targetEntity, new RenderComponent("image", {x, y}, "red", {w: 100, h:88}, tankImg));
         this.addComponent(targetEntity, new RenderContext("gameCtx"));
         this.addComponent(targetEntity, new Tag("target"));
         this.addComponent(targetEntity, new DamageOnCollisionComponent(100));

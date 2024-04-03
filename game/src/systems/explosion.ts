@@ -1,7 +1,7 @@
-import { EntityManager } from "../entityManager";
-import { EventManager } from "../eventManager";
-import { Vec2 } from "../math";
-import { socket } from "../socket";
+import { EntityManager } from "../entities/entityManager";
+import { EventManager } from "../events/eventManager";
+import { Vec2 } from "../lib/math";
+import { socket } from "../socket/socket";
 
 export class ExplosionSystem {
     entityManager: EntityManager;

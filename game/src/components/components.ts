@@ -1,4 +1,4 @@
-import { Vec2 } from "./math";
+import { Vec2 } from "../lib/math";
 
 export class Component {
     name: string;
@@ -119,7 +119,6 @@ export class EventListener extends Component{
         this.listener = topic;
     }
 }
-
 
 export class RenderComponent extends Component {
     shape: "rectangle" | "circle" | "image";

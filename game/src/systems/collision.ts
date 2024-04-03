@@ -1,7 +1,7 @@
-import { Active, RenderComponent } from "../components";
-import { EntityManager } from "../entityManager";
-import { EventManager } from "../eventManager";
-import { checkOverlap, randomRange } from "../math";
+import { Active, RenderComponent } from "../components/components";
+import { EntityManager } from "../entities/entityManager";
+import { EventManager } from "../events/eventManager";
+import { checkOverlap, randomRange } from "../lib/math";
 
 export class CollisionDetectionStystem {
     gameState: any;
