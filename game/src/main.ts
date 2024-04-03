@@ -2,7 +2,7 @@ import './style/style.scss'
 
 import { EventManager } from "./events/eventManager";
 import { Vec2 } from "./lib/math";
-import { EventListeners } from "./events/eventListeners";
+import { EventListeners, tempOffset, zoom } from "./events/eventListeners";
 import { EntityManager } from "./entities/entityManager";
 import { socket } from "./socket/socket";
 import groundImg from "./assets/ground.png";
@@ -12,14 +12,14 @@ import { RenderSystem } from './systems/render';
 import { MouseTrackingSystem } from './systems/mouseTracking';
 import { CollisionDetectionStystem } from './systems/collision';
 
-class GameState {
+export class GameState {
   currentBulletPosition: Vec2 | null;
     constructor() {
         this.currentBulletPosition = null;
     }
 
-    updateBulletPosition(position: Vec2) {
-        this.currentBulletPosition = position;
+    updateBulletPosition(position: Vec2 | null) {
+        this.currentBulletPosition = position ? new Vec2((position.x - tempOffset.x) * zoom, (position.y - tempOffset.y) * zoom) : null;
     }
 
     getBulletPosition() {
@@ -29,20 +29,23 @@ class GameState {
 
 const gameCanvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gameCtx = gameCanvas.getContext("2d", { willReadFrequently: true });
-gameCanvas.width = 1445;
-gameCanvas.height = 578;
+const width = 1445;
+const height = 578;
+const aspectRatio = width/height;
+gameCanvas.width = window.innerWidth - 50;
+gameCanvas.height = height;
 
 const terrainCanvas = document.createElement("canvas") as HTMLCanvasElement;
 const terrainCtx = terrainCanvas.getContext("2d", {willReadFrequently: true});
-terrainCanvas.width = gameCanvas.width;
-terrainCanvas.height = gameCanvas.height;
+terrainCanvas.width = width;
+terrainCanvas.height = height;
 
 // const scale = window.devicePixelRatio;
-const groundImage = new Image()
+export const groundImage = new Image()
 groundImage.src = groundImg;
 
 groundImage.onload= (e) => {
-    terrainCtx!.drawImage(groundImage, 0, 0)
+    terrainCtx!.drawImage(groundImage, 0, 0, width, height);
 }
 
 class Power {
@@ -65,7 +68,6 @@ class Power {
     draw() {
         this.ctx.fillStyle = this.color;
         this.ctx.fillRect(this.position.x, this.position.y, this.power, this.height);
-
         this.ctx.strokeStyle = "#000000";
         this.ctx.strokeRect(this.position.x, this.position.y, this.width, this.height);
     }
@@ -106,9 +108,9 @@ const loadGame = () => {
         });
     })
 
-    entityManager.createBg(gameCanvas.width, gameCanvas.height);
-    entityManager.createWindParticles(gameCanvas.width, gameCanvas.height);
-    entityManager.createTerrain({x: 0, y: 0}, gameCanvas.width, gameCanvas.height);
+    entityManager.createBg(width, height);
+    entityManager.createWindParticles(width, height);
+    entityManager.createTerrain(width, height);
     let entities: string[] = [];
     if (socket.io === undefined) {
         const player = entityManager.createPlayer({x: 20, y: gameCanvas.height - 130});
@@ -189,7 +191,8 @@ const loadGame = () => {
     })
 
     const eventListeners = new EventListeners(gameCanvas, entityManager, eventManager);
-    const movementSystem = new MovementSystem(entityManager, eventManager);
+    eventListeners.resizeCanvas();
+    const movementSystem = new MovementSystem(gameState, entityManager, eventManager);
     const renderSystem = new RenderSystem(gameState, entityManager, terrainCanvas, contexts, eventManager);
     const mouseTrackingSystem = new MouseTrackingSystem(entityManager, eventManager);
     const collisionDetectionSystem = new CollisionDetectionStystem(gameState, entityManager, contexts, eventManager);

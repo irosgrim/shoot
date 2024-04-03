@@ -1,5 +1,7 @@
+import { render } from "sass";
 import { Alpha, RenderComponent, Rotation, Tag, Velocity } from "../components/components";
 import { EntityManager } from "../entities/entityManager";
+import { tempOffset, zoom } from "../events/eventListeners";
 import { EventManager } from "../events/eventManager";
 
 export class RenderSystem {
@@ -20,12 +22,19 @@ export class RenderSystem {
     update() {
         const gameCtx = this.contexts.get("gameCtx");
         gameCtx!.clearRect(0, 0, gameCtx!.canvas.width, gameCtx!.canvas.height);
+        // gameCtx!.clearRect(0, 0, 1445, 578);
+
+        gameCtx!.save();
+        gameCtx!.scale(1/zoom, 1/zoom);
+        gameCtx!.translate(tempOffset.x, tempOffset.y);
         this.entityManager.entities.forEach(entityId => {
             const renderContext = this.entityManager.getComponent(entityId, "RenderContext");
             const tag = this.entityManager.getComponent(entityId, "Tag");
             const active = this.entityManager.getComponent(entityId, "Active");
 
             const renderComponent = this.entityManager.getComponent(entityId, "RenderComponent");
+            const SpriteComponent = this.entityManager.getComponent(entityId, "RenderComponent");
+
 
             if (active !== undefined && active.isActive === true) {
                 if (renderContext && renderContext.contextKey === "gameCtx" && renderComponent) {
@@ -42,6 +51,7 @@ export class RenderSystem {
                 }
             }
         })
+        gameCtx!.restore();
     }
 
     drawBullet(ctx: CanvasRenderingContext2D, components: {renderComponent: RenderComponent, velocity: Velocity, rotation?: Rotation}) {
@@ -115,7 +125,11 @@ export class RenderSystem {
                 ctx.fillRect(renderComponent.position.x, renderComponent.position.y, renderComponent.size.w!, renderComponent.size.h!);
                 break;
             case "image":
-                ctx.drawImage(renderComponent.image!, renderComponent.position.x, renderComponent.position.y, renderComponent.size.w!, renderComponent.size.h!);
+                if (renderComponent.source && (renderComponent.source.x !== undefined && renderComponent.source.y !== undefined && renderComponent.source.w !== undefined && renderComponent.source.h !== undefined)) {
+                    ctx.drawImage(renderComponent.image!, renderComponent.source.x, renderComponent.source.y, renderComponent.source.w, renderComponent.source.h, renderComponent.position.x, renderComponent.position.y, renderComponent.size.w!, renderComponent.size.h!);
+                } else {
+                    ctx.drawImage(renderComponent.image!, renderComponent.position.x, renderComponent.position.y, renderComponent.size.w!, renderComponent.size.h!);
+                }
                 break;
             }
         ctx.globalAlpha = 1;
@@ -143,5 +157,16 @@ export class RenderSystem {
                 this.drawDefaultShape(ctx, components);
                 break;
         }
+    }
+
+
+    flipHorizontally(ctx: CanvasRenderingContext2D, image: ImageBitmap, x: number, y: number, width: number, height: number) {
+        ctx.save();
+
+        ctx.translate(x + width, y);
+        ctx.scale(-1, 1);
+
+        ctx.drawImage(image, 0, 0, width, height);
+        ctx.restore(); 
     }
 }

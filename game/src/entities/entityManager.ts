@@ -17,7 +17,7 @@ import { EventManager } from "../events/eventManager";
 import groundImg from "../assets/ground.png";
 import backgroundImg from "../assets/background.png";
 import barrelImg from "../assets/barrel.png";
-import tankImg from "../assets/snail_left.png";
+import tankImg from "../assets/snails.png";
 import bulletImg from "../assets/bullet.png";
 import gary from "../assets/gary.png";
 
@@ -83,9 +83,9 @@ export class EntityManager {
         return this.componentsByName.get(componentClass) || new Map();
     }
 
-    createTerrain(position: {x: number, y: number}, w: number, h: number) {
+    createTerrain(w: number, h: number) {
         const terrainEntityId = this.createEntity();
-        this.addComponent(terrainEntityId, new RenderComponent("image", position, "", {w, h}, groundImg));
+        this.addComponent(terrainEntityId, new RenderComponent("image", {x: 0, y: 0}, "", {w, h}, groundImg));
         this.addComponent(terrainEntityId, new RenderContext("gameCtx"));
         this.addComponent(terrainEntityId, new Tag("terrain"));
         this.addComponent(terrainEntityId, new Active(true));
@@ -112,7 +112,7 @@ export class EntityManager {
         this.addComponent(cannonEntityId, new Active(true));
 
         const tankBaseEntityId = this.createEntity();
-        this.addComponent(tankBaseEntityId, new RenderComponent("image", {...position, x: position.x + 20}, "blue", {w: 80, h: 54}, tankImg));
+        this.addComponent(tankBaseEntityId, new RenderComponent("image", {...position, x: position.x + 20}, "blue", {w: 80, h: 54}, tankImg, {x: 0, y: 0, w: 145, h: 98}));
         this.addComponent(tankBaseEntityId, new RenderContext("gameCtx"));
         this.addComponent(tankBaseEntityId, new Tag("tankbase"))
         this.addComponent(tankBaseEntityId, new Active(true));
@@ -138,7 +138,7 @@ export class EntityManager {
 
     createTarget(x: number, y: number, active = false, targetId?: string) {
         const targetEntity = this.createEntity(targetId);
-        this.addComponent(targetEntity, new RenderComponent("image", {x, y}, "red", {w: 100, h:88}, tankImg));
+        this.addComponent(targetEntity, new RenderComponent("image", {x, y}, "red", {w: 100, h:88}, tankImg, {x: 0, y: 98, w: 145, h: 98}));
         this.addComponent(targetEntity, new RenderContext("gameCtx"));
         this.addComponent(targetEntity, new Tag("target"));
         this.addComponent(targetEntity, new DamageOnCollisionComponent(100));

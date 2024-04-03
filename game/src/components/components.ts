@@ -130,11 +130,24 @@ export class RenderComponent extends Component {
         h: number | null,
     }
     image: HTMLImageElement | null;
+    source: {
+        x?: number,
+        y?: number,
+        w?: number,
+        h?: number,
+    } | null = null;
   constructor(shape: "rectangle" | "circle" | "image", position: {x: number, y: number} | Vec2, color: string, size: {
         r?: number,
         w?: number,
         h?: number,
-    }, imagePath: string | null = null) {
+    }, 
+    imagePath: string | null = null, 
+    source: {
+        x?: number,
+        y?: number,
+        w?: number,
+        h?: number,
+    } | null = null) {
     super("RenderComponent");
     this.position = new Vec2(position.x, position.y);
     this.color = color;
@@ -148,6 +161,7 @@ export class RenderComponent extends Component {
     if (imagePath) {
         this.image = new Image(this.size.w!, this.size.h!);
         this.image.src = imagePath;
+        this.source = source;
     }
   }
 }

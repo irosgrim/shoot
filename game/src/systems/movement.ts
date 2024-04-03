@@ -2,11 +2,14 @@ import { Gravity, RenderComponent, Velocity } from "../components/components";
 import { EntityManager } from "../entities/entityManager";
 import { EventManager } from "../events/eventManager";
 import { Vec2 } from "../lib/math";
+import { GameState } from "../main";
 
 export class MovementSystem {
+    gameState: GameState;
     entityManager: EntityManager;
     eventManager: EventManager;
-    constructor (entityManager: EntityManager, eventManager: EventManager) {
+    constructor (gameState: GameState, entityManager: EntityManager, eventManager: EventManager) {
+        this.gameState = gameState;
         this.entityManager = entityManager;
         this.eventManager = eventManager;
     }
@@ -25,13 +28,7 @@ export class MovementSystem {
                     renderComponent.position.add(tempVelocity);
                     velocityComponent.vec2.add(gravity.vec2);
                     velocityComponent.vec2.multiply({x: 0.999}).round();
-
-                    const wind = {x: -12, y: 1}; // wind vector: moderate wind blowing to the left
-                    
-                    velocityComponent.vec2.add(wind).round();
-                    
-                    // air resistance/friction 
-                    velocityComponent.vec2.multiply({x: 0.999, y: 0.999}).round();
+                    // this.applyWindEffect(velocityComponent);
                     
                 }
                 if (tag && tag.tag === "particle") {
@@ -64,5 +61,14 @@ export class MovementSystem {
 
             }
         })
+    }
+
+    applyWindEffect(velocityComponent: Velocity) {
+        // wind vector to the left
+        const wind = {x: -6, y: 4}; 
+        velocityComponent.vec2.add(wind).round();
+        
+        // air resistance
+        velocityComponent.vec2.multiply({x: 0.999, y: 0.999}).round();
     }
 }

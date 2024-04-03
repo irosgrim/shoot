@@ -1,10 +1,12 @@
 import { Active, RenderComponent } from "../components/components";
 import { EntityManager } from "../entities/entityManager";
+import { zoom } from "../events/eventListeners";
 import { EventManager } from "../events/eventManager";
 import { checkOverlap, randomRange } from "../lib/math";
+import { GameState } from "../main";
 
 export class CollisionDetectionStystem {
-    gameState: any;
+    gameState: GameState;
     entityManager: EntityManager;
     contexts: Map<string, CanvasRenderingContext2D>;
     eventManager: EventManager;
@@ -13,18 +15,18 @@ export class CollisionDetectionStystem {
         h: number,
     }
 
-    constructor(gameState: any, entityManager: EntityManager, contexts: Map<string, CanvasRenderingContext2D>, eventManager: EventManager) {
+    constructor(gameState: GameState, entityManager: EntityManager, contexts: Map<string, CanvasRenderingContext2D>, eventManager: EventManager) {
         this.gameState = gameState;
         this.entityManager = entityManager;
         this.eventManager = eventManager;
         this.contexts = contexts;
         this.gameCanvasBounds = {
-            w: 0,
-            h: 0,
+            w: 1445,
+            h: 578,
         }
-        const gameCtx = this.contexts.get("gameCtx");
-        this.gameCanvasBounds.w = gameCtx!.canvas.width;
-        this.gameCanvasBounds.h = gameCtx!.canvas.height;
+        // const gameCtx = this.contexts.get("gameCtx");    
+        // this.gameCanvasBounds.w = gameCtx!.canvas.width;
+        // this.gameCanvasBounds.h = gameCtx!.canvas.height;
     }
 
     update () {
@@ -41,7 +43,7 @@ export class CollisionDetectionStystem {
              }
             if (tag.tag === "bullet" && active.isActive) {
                 // check out of bounds
-                if (renderComponent &&  (renderComponent.position.x >= this.gameCanvasBounds.w || renderComponent.position.x <= -50 || renderComponent.position.y >= this.gameCanvasBounds.h)) {
+                if (renderComponent &&  (renderComponent.position.x >= this.gameCanvasBounds.w * zoom || renderComponent.position.x <= -50 || renderComponent.position.y >= this.gameCanvasBounds.h * zoom)) {
                     this.resetBullet(entityId, renderComponent);
                 }
                 if (renderComponent) {
@@ -114,6 +116,6 @@ export class CollisionDetectionStystem {
             renderComponent.position.x = randomRange(this.gameCanvasBounds.w/2, this.gameCanvasBounds.w - 10);
             renderComponent.position.y = randomRange(100, this.gameCanvasBounds.h - 100);
             activeComponent.isActive = true;
-        }, 1000 + Math.random() * 15000)
+        }, 1000 + Math.random() * 2000)
     }
 }
